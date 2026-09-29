@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Editor · Ashmeet SMMA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<style>
+.screen{display:none}
+.screen.is-visible{display:block}
+
+.task-card{
+  display:flex;align-items:center;gap:16px;padding:18px 22px;border-radius:18px;background:var(--surface);
+  box-shadow:var(--shadow-card);width:100%;text-align:left;margin-bottom:12px;
+}
+.task-card:hover{background:var(--tint)}
+.task-main{flex:1;min-width:0}
+.task-idea{font-size:14px;font-weight:700}
+.task-meta{font-size:12px;color:var(--muted);margin-top:4px}
+.task-urgency{font-size:11px;font-weight:800;padding:5px 11px;border-radius:999px;white-space:nowrap}
+.u--today{background:var(--pink);color:var(--pink-ink)}
+.u--soon{background:var(--amber);color:var(--amber-ink)}
+.u--ok{background:var(--mint);color:var(--mint-ink)}
+
+.back-link{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:var(--ink-soft);margin-bottom:16px}
+.back-link svg{width:14px;height:14px}
+.back-link:hover{color:var(--ink)}
+
+.brief-row{display:flex;gap:8px;margin-bottom:14px}
+.brief-row b{width:150px;flex-shrink:0;font-size:12.5px;color:var(--ink-soft)}
+.brief-row span{font-size:13px;line-height:1.6}
+.ref-link{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:var(--violet-deep);background:var(--violet-soft);padding:6px 12px;border-radius:999px;margin-top:4px}
+.ref-link svg{width:13px;height:13px}
+
+.upload-area{
+  border:2px dashed #DEDCF5;border-radius:var(--r-card);padding:32px 24px;text-align:center;
+  background:var(--tint);margin-top:8px;
+}
+.upload-area svg{width:30px;height:30px;color:var(--violet-deep);margin-bottom:10px}
+.upload-area p{margin:0 0 4px;font-size:13.5px;font-weight:700}
+.upload-spec{font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.6}
+
+.instr-compare{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.instr-col{padding:16px 18px;border-radius:16px}
+.instr-col.old{background:var(--tint);color:var(--ink-soft)}
+.instr-col.new{background:var(--violet-soft);color:var(--violet-deep)}
+.instr-col h4{margin:0 0 8px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.03em}
+.instr-col p{margin:0;font-size:13px;line-height:1.7}
+
+.comment{padding:14px 0;border-bottom:1px solid #F1F1F8}
+.comment:last-child{border-bottom:none}
+.comment-head{display:flex;align-items:center;gap:8px}
+.comment-ts{font-size:11px;font-weight:700;color:var(--violet-deep);background:var(--violet-soft);padding:3px 8px;border-radius:7px}
+.comment-author{font-size:12.5px;font-weight:700}
+.comment-text{font-size:12.5px;color:var(--ink-soft);margin-top:6px;line-height:1.6}
+.voice-note{display:flex;align-items:center;gap:10px;margin-top:8px;padding:10px 12px;background:var(--tint);border-radius:12px}
+.voice-note svg{width:16px;height:16px;color:var(--violet-deep);flex-shrink:0}
+.voice-wave{flex:1;height:20px;background:repeating-linear-gradient(90deg,var(--violet) 0 2px,transparent 2px 5px);opacity:.5;border-radius:4px}
+.transcript{font-size:11.5px;color:var(--muted);margin-top:6px;font-style:italic;line-height:1.5}
+
+.folder-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
+.folder{background:var(--surface);border-radius:18px;box-shadow:var(--shadow-card);padding:18px}
+.folder-icon{width:42px;height:42px;border-radius:14px;background:var(--violet-soft);color:var(--violet-deep);display:grid;place-items:center;margin-bottom:12px}
+.folder-icon svg{width:19px;height:19px}
+.folder-name{font-size:13.5px;font-weight:700}
+.folder-meta{font-size:11.5px;color:var(--muted);margin-top:4px}
+
+@media (max-width:900px){ .instr-compare{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <aside class="rail">
+   <div class="rail-inner">
+    <div class="rail-logo">RB</div>
+
+    <button class="rail-btn is-active" data-screen="todo" aria-current="page" aria-label="To do">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11.5 11.5 14 20 5.5"/><path d="M20 12.5V18a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h9"/></svg>
+      <span class="rail-badge">3</span>
+      <span class="tip">To do</span>
+    </button>
+    <button class="rail-btn" data-screen="redo" aria-label="Re do">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 1 2.6 6.3"/><path d="M3 21v-6h6"/></svg>
+      <span class="rail-badge">1</span>
+      <span class="tip">Re do</span>
+    </button>
+    <button class="rail-btn" data-screen="library" aria-label="Library">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
+      <span class="tip">Library</span>
+    </button>
+   </div>
+  </aside>
+
+  <div class="main">
+
+    <nav class="topnav">
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7.5"/><path d="m21 21-4.2-4.2"/></svg>
+        <input type="search" placeholder="Search your edits" aria-label="Search">
+      </div>
+      <div class="nav-right">
+        <div class="seg" role="group" aria-label="Appearance">
+          <button class="is-active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+            Light
+          </button>
+          <button>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+            Dark
+          </button>
+        </div>
+        <button class="ghost" aria-label="Notifications">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+          <span class="dot"></span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- ================= TO DO ================= -->
+    <section class="screen is-visible" id="screen-todo">
+      <div id="todo-list-view">
+        <section class="hero-row" style="grid-template-columns:1fr">
+          <div class="hello">
+            <h1>Hi Rohit!<span class="light">Three cuts on your plate</span></h1>
+            <p>Ordered by deadline — the top one is due first.</p>
+          </div>
+        </section>
+
+        <button class="task-card" data-todo="menu">
+          <div class="avatar-sq" style="background:linear-gradient(140deg,#62A0F2,#14539F)">BC</div>
+          <div class="task-main">
+            <div class="task-idea">New season menu</div>
+            <div class="task-meta">Basil Café · assigned by Manreet Gill · assigned 21 Sep</div>
+          </div>
+          <span class="task-urgency u--today">Due today</span>
+        </button>
+
+        <button class="task-card" data-todo="smile">
+          <div class="avatar-sq" style="background:linear-gradient(140deg,#8F80F7,#5A4AD8)">RD</div>
+          <div class="task-main">
+            <div class="task-idea">Smile makeover before/after</div>
+            <div class="task-meta">Ramana Dental · assigned by Jaspreet Kaur · assigned 22 Sep</div>
+          </div>
+          <span class="task-urgency u--soon">Due tomorrow</span>
+        </button>
+
+        <button class="task-card" data-todo="kitchen">
+          <div class="avatar-sq" style="background:linear-gradient(140deg,#FFC974,#DF8A0E)">SI</div>
+          <div class="task-main">
+            <div class="task-idea">Modular kitchen reveal</div>
+            <div class="task-meta">Sandhu Interiors · assigned by Nikhil Sharma · assigned 20 Sep</div>
+          </div>
+          <span class="task-urgency u--ok">27 Sep</span>
+        </button>
+      </div>
+
+      <div id="todo-detail-view" style="display:none">
+        <a href="#" class="back-link" id="todo-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Back to To do</a>
+        <div class="grid">
+          <section class="card" style="padding:24px 26px">
+            <div class="card-title" style="margin-bottom:16px">New season menu · Basil Café</div>
+            <div class="brief-row"><b>Concept</b><span>Fast-paced montage of the five new dishes, ending on the founder plating the signature item.</span></div>
+            <div class="brief-row"><b>Script</b><span>VO: "New season, new flavours." Cut to each dish on a 1-second beat, hold 2s on final plate.</span></div>
+            <div class="brief-row"><b>Instructions</b><span>Match cuts to the trending audio linked below. Keep captions punchy — max 4 words per card.</span></div>
+            <div class="brief-row"><b>Reference</b>
+              <span>
+                <a href="#" class="ref-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>Reference reel</a>
+              </span>
+            </div>
+
+            <button class="btn-dark" style="margin-top:8px">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 3v18M3 8h18"/></svg>
+              Open raw footage in Drive
+            </button>
+
+            <div class="upload-area">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+              <p>Upload finished cut</p>
+              <div class="upload-spec">H.264 MP4 · under 200MB · faststart</div>
+            </div>
+          </section>
+
+          <aside class="side">
+            <section class="panel">
+              <div class="card-title" style="margin-bottom:10px">Deadline</div>
+              <div style="font-size:20px;font-weight:800">Today, 23 Sep</div>
+              <div style="font-size:12.5px;color:var(--muted);margin-top:6px">Assigned by Manreet Gill on 21 Sep</div>
+            </section>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= RE DO ================= -->
+    <section class="screen" id="screen-redo">
+      <section class="hero-row" style="grid-template-columns:1fr">
+        <div class="hello">
+          <h1>Re do<span class="light">One cut sent back for changes</span></h1>
+          <p>Compare what changed, then upload the revised cut.</p>
+        </div>
+      </section>
+
+      <div class="grid">
+        <section class="card" style="padding:24px 26px">
+          <div class="card-title" style="margin-bottom:6px">Diwali offer reel · cut 3</div>
+          <div style="font-size:12.5px;color:var(--muted);margin-bottom:18px">Khanna Jewellers · previous cut v2 · 6 days since changes requested</div>
+
+          <div class="instr-compare">
+            <div class="instr-col old">
+              <h4>Original instructions</h4>
+              <p>Showcase the Diwali collection with warm gold tones. End on the shop logo. 30 seconds, upbeat festive music.</p>
+            </div>
+            <div class="instr-col new">
+              <h4>New instructions</h4>
+              <p>End on the diya shot instead of the logo — client feels it's more festive. Fix the music crossfade at 0:38 and move the offer text off the product at 0:11.</p>
+            </div>
+          </div>
+
+          <div style="margin-top:20px">
+            <div class="card-title" style="font-size:14px;margin-bottom:10px">Previous cut</div>
+            <div class="video-ph" style="aspect-ratio:16/6">
+              <div class="play-glyph"><svg viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></div>
+            </div>
+            <div style="font-size:12px;color:var(--muted);margin-top:8px">Version 2 · uploaded 17 Sep</div>
+          </div>
+
+          <div class="upload-area">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+            <p>Upload revised cut (v3)</p>
+            <div class="upload-spec">H.264 MP4 · under 200MB · faststart</div>
+          </div>
+        </section>
+
+        <aside class="side">
+          <section class="card queue" style="padding:20px 22px">
+            <div class="card-title" style="margin-bottom:12px">Change requests</div>
+            <div class="comment">
+              <div class="comment-head"><span class="comment-ts">0:11–0:14</span><span class="comment-author">Nikhil Sharma</span></div>
+              <div class="comment-text">The offer text is covering the product shot here — push it down or shrink it.</div>
+            </div>
+            <div class="comment">
+              <div class="comment-head"><span class="comment-ts">0:38–0:41</span><span class="comment-author">Nikhil Sharma</span></div>
+              <div class="comment-text">Music drops out oddly on the cut. Can we crossfade instead?</div>
+            </div>
+            <div class="comment">
+              <div class="comment-head"><span class="comment-ts">1:02–1:07</span><span class="comment-author">Khanna Jewellers (client)</span></div>
+              <div class="voice-note">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v4"/></svg>
+                <span class="voice-wave" aria-hidden="true"></span>
+                <span style="font-size:11px;font-weight:700;color:var(--ink-soft)">0:09</span>
+              </div>
+              <div class="transcript">"Can you end on the diya shot instead of the logo? Feels more festive to close on."</div>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ================= LIBRARY ================= -->
+    <section class="screen" id="screen-library">
+      <section class="hero-row" style="grid-template-columns:1fr">
+        <div class="hello">
+          <h1>Library<span class="light">Reusable footage, per client</span></h1>
+          <p>B-rolls, logo stings, and music beds you can drop into any cut.</p>
+        </div>
+      </section>
+
+      <div class="folder-grid">
+        <div class="folder">
+          <div class="folder-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg></div>
+          <div class="folder-name">Ramana Dental</div>
+          <div class="folder-meta">18 items · updated 2 days ago</div>
+        </div>
+        <div class="folder">
+          <div class="folder-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg></div>
+          <div class="folder-name">Grover Motors</div>
+          <div class="folder-meta">31 items · updated yesterday</div>
+        </div>
+        <div class="folder">
+          <div class="folder-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg></div>
+          <div class="folder-name">Sandhu Interiors</div>
+          <div class="folder-meta">9 items · updated 5 days ago</div>
+        </div>
+        <div class="folder">
+          <div class="folder-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg></div>
+          <div class="folder-name">Khanna Jewellers</div>
+          <div class="folder-meta">14 items · updated 6 days ago</div>
+        </div>
+        <div class="folder">
+          <div class="folder-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg></div>
+          <div class="folder-name">Basil Café</div>
+          <div class="folder-meta">22 items · updated 3 days ago</div>
+        </div>
+        <div class="folder" style="display:flex;flex-direction:column">
+          <div class="folder-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg></div>
+          <div class="folder-name">Verdant Gym</div>
+          <div class="folder-meta" style="margin-bottom:12px">Nothing uploaded yet — onboarding</div>
+          <button class="btn-soft" style="justify-content:center">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+            Upload
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<script>
+(function(){
+  var railBtns = document.querySelectorAll('.rail-btn[data-screen]');
+  var screens = document.querySelectorAll('.screen');
+  railBtns.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      railBtns.forEach(function(b){ b.classList.remove('is-active'); b.removeAttribute('aria-current'); });
+      btn.classList.add('is-active'); btn.setAttribute('aria-current','page');
+      var target = 'screen-' + btn.dataset.screen;
+      screens.forEach(function(s){ s.classList.toggle('is-visible', s.id === target); });
+      if (btn.dataset.screen === 'todo'){
+        document.getElementById('todo-list-view').style.display = '';
+        document.getElementById('todo-detail-view').style.display = 'none';
+      }
+    });
+  });
+
+  document.querySelectorAll('.seg').forEach(function(seg){
+    seg.querySelectorAll('button').forEach(function(b){
+      b.addEventListener('click', function(){ seg.querySelectorAll('button').forEach(function(x){ x.classList.remove('is-active'); }); b.classList.add('is-active'); });
+    });
+  });
+
+  document.querySelectorAll('[data-todo]').forEach(function(el){
+    el.addEventListener('click', function(){
+      document.getElementById('todo-list-view').style.display = 'none';
+      document.getElementById('todo-detail-view').style.display = '';
+    });
+  });
+  document.getElementById('todo-back').addEventListener('click', function(e){
+    e.preventDefault();
+    document.getElementById('todo-list-view').style.display = '';
+    document.getElementById('todo-detail-view').style.display = 'none';
+  });
+})();
+</script>
+
+</body>
+</html>

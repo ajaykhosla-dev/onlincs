@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Admin · Ashmeet SMMA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<style>
+/* ---- admin.html: layout rules specific to this file only ---- */
+.screen{display:none}
+.screen.is-visible{display:block}
+
+/* Calendar */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal-dow{font-size:11px;font-weight:700;color:var(--muted);text-align:center;padding:6px 0}
+.cal-day{
+  min-height:86px;border-radius:14px;background:var(--tint);padding:8px;
+  display:flex;flex-direction:column;gap:4px;text-align:left;position:relative;
+}
+.cal-day:hover{background:#EFEFF9}
+.cal-day.is-empty{background:transparent}
+.cal-day.is-today{outline:2px solid var(--violet);outline-offset:-2px}
+.cal-daynum{font-size:12px;font-weight:700;color:var(--ink-soft)}
+.cal-chip{
+  font-size:10.5px;font-weight:700;padding:3px 7px;border-radius:8px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.cal-chip.c--ram{background:var(--violet-soft);color:var(--violet-deep)}
+.cal-chip.c--sdh{background:var(--amber);color:var(--amber-ink)}
+.cal-chip.c--bsl{background:var(--sky);color:var(--sky-ink)}
+
+.shoot-row{
+  display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid #F1F1F8;text-align:left;width:100%;
+}
+.shoot-row:last-child{border-bottom:none}
+.shoot-time{width:64px;flex-shrink:0;font-size:11.5px;font-weight:700;color:var(--ink-soft)}
+.shoot-body{flex:1;min-width:0}
+.shoot-client{font-size:13px;font-weight:700}
+.shoot-meta{font-size:11.5px;color:var(--muted);margin-top:2px}
+
+/* Editors' den list */
+.den-row{display:flex;align-items:center;gap:16px;padding:16px 22px;border-bottom:1px solid #F1F1F8;width:100%;text-align:left}
+.den-row:last-child{border-bottom:none}
+.den-row:hover{background:var(--tint)}
+.den-main{flex:1;min-width:0}
+.den-idea{font-size:13.5px;font-weight:700}
+.den-meta{font-size:12px;color:var(--muted);margin-top:3px}
+.den-deadline{font-size:12px;font-weight:700;color:var(--ink-soft);width:110px;flex-shrink:0}
+
+/* Review screen */
+.review-layout{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(280px,1fr);gap:18px;align-items:start}
+.comment{padding:14px 0;border-bottom:1px solid #F1F1F8}
+.comment:last-child{border-bottom:none}
+.comment-head{display:flex;align-items:center;gap:8px}
+.comment-ts{font-size:11px;font-weight:700;color:var(--violet-deep);background:var(--violet-soft);padding:3px 8px;border-radius:7px}
+.comment-author{font-size:12.5px;font-weight:700}
+.comment-text{font-size:12.5px;color:var(--ink-soft);margin-top:6px;line-height:1.6}
+.voice-note{display:flex;align-items:center;gap:10px;margin-top:8px;padding:10px 12px;background:var(--tint);border-radius:12px}
+.voice-note svg{width:16px;height:16px;color:var(--violet-deep);flex-shrink:0}
+.voice-wave{flex:1;height:20px;background:repeating-linear-gradient(90deg,var(--violet) 0 2px,transparent 2px 5px);opacity:.5;border-radius:4px}
+.transcript{font-size:11.5px;color:var(--muted);margin-top:6px;font-style:italic;line-height:1.5}
+.back-link{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:var(--ink-soft);margin-bottom:16px}
+.back-link svg{width:14px;height:14px}
+.back-link:hover{color:var(--ink)}
+.btn-pink{
+  display:flex;align-items:center;gap:8px;height:42px;padding:0 20px;border-radius:999px;
+  background:var(--pink);color:var(--pink-ink);font-size:13px;font-weight:700;
+}
+.btn-pink:hover{filter:brightness(.97)}
+
+/* Team */
+.perf-row .mono{width:36px;height:36px;font-size:11px}
+
+/* Settings */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid #F1F1F8}
+.settings-row:last-child{border-bottom:none}
+.settings-row-label{font-size:13px;font-weight:700}
+.settings-row-note{font-size:11.5px;color:var(--muted);margin-top:2px}
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:7px}
+.usage-track{height:8px;border-radius:999px;background:#EEEEF7;overflow:hidden;margin-top:10px}
+.usage-fill{display:block;height:100%;border-radius:999px}
+
+@media (max-width:1220px){ .review-layout{grid-template-columns:1fr} .settings-grid{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- rail -->
+  <aside class="rail">
+   <div class="rail-inner">
+    <div class="rail-logo">AC</div>
+
+    <button class="rail-btn is-active" data-screen="clients" aria-current="page" aria-label="Clients">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>
+      <span class="tip">Clients</span>
+    </button>
+    <button class="rail-btn" data-screen="calendar" aria-label="Calendar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="4"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      <span class="tip">Calendar</span>
+    </button>
+    <button class="rail-btn" data-screen="den" aria-label="Editors' den">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="4"/><path d="m10 9 5 3-5 3V9Z"/></svg>
+      <span class="rail-badge">4</span>
+      <span class="tip">Editors' den</span>
+    </button>
+    <button class="rail-btn" data-screen="posting" aria-label="Posting schedule">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      <span class="tip">Posting schedule</span>
+    </button>
+    <button class="rail-btn" data-screen="planner" aria-label="Content planner">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M3 9h18M9 9v12"/></svg>
+      <span class="tip">Content planner</span>
+    </button>
+    <button class="rail-btn" data-screen="team" aria-label="Team">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.6"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M17 5.2a3.6 3.6 0 0 1 0 6.9M18.2 14.4A5.6 5.6 0 0 1 22 20"/></svg>
+      <span class="tip">Team</span>
+    </button>
+
+    <div class="rail-foot">
+      <button class="rail-btn" data-screen="settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.82 1.18V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 7.26 19.7l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 3.25 14H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.3 7.26l-.06-.06A2 2 0 1 1 7.07 4.37l.06.06A1.65 1.65 0 0 0 10 3.25V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 2.74 1.21l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 20.75 10H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+        <span class="tip">Settings</span>
+      </button>
+    </div>
+   </div>
+  </aside>
+
+  <!-- main -->
+  <div class="main">
+
+    <!-- top nav (shared chrome, tabs swap per screen title) -->
+    <nav class="topnav">
+      <a href="#" class="tab is-active" id="topnav-tab1">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>
+        Clients
+      </a>
+      <a href="#" class="tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h13"/></svg>
+        Pipeline
+      </a>
+      <a href="#" class="tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17V9M9 17V5M15 17v-6M21 17v-9"/></svg>
+        Performance
+      </a>
+
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7.5"/><path d="m21 21-4.2-4.2"/></svg>
+        <input type="search" placeholder="Search clients or shoots" aria-label="Search">
+      </div>
+
+      <div class="nav-right">
+        <div class="seg" role="group" aria-label="Appearance">
+          <button class="is-active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+            Light
+          </button>
+          <button>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+            Dark
+          </button>
+        </div>
+        <button class="ghost" aria-label="Notifications">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+          <span class="dot"></span>
+        </button>
+        <button class="ghost" aria-label="Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.82 1.18V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 7.26 19.7l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 3.25 14H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.3 7.26l-.06-.06A2 2 0 1 1 7.07 4.37l.06.06A1.65 1.65 0 0 0 10 3.25V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 2.74 1.21l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 20.75 10H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+        </button>
+        <button class="btn-soft">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>
+          Export data
+          <span class="chip">XLS</span>
+        </button>
+        <button class="btn-dark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          Add client
+        </button>
+      </div>
+    </nav>
+
+    <!-- ================= CLIENTS ================= -->
+    <section class="screen is-visible" id="screen-clients">
+
+      <section class="hero-row">
+        <div class="hello">
+          <h1>Hi Ashmeet!<span class="light">Who needs you today?</span></h1>
+          <p>Six accounts running, three managers, and nine things sitting on someone's approval.</p>
+        </div>
+
+        <div class="metric m--violet">
+          <div class="metric-top">
+            <div class="metric-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="4"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+            </div>
+            <span class="metric-delta">+1 this month</span>
+          </div>
+          <div>
+            <div class="metric-value">6</div>
+            <div class="metric-label">Active clients</div>
+            <div class="metric-note">Across 3 managers</div>
+          </div>
+        </div>
+
+        <div class="metric m--amber">
+          <div class="metric-top">
+            <div class="metric-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 6.5V12l3.5 2"/></svg>
+            </div>
+            <span class="metric-delta">6 external</span>
+          </div>
+          <div>
+            <div class="metric-value">9</div>
+            <div class="metric-label">Waiting on approval</div>
+            <div class="metric-note">3 sitting with your team</div>
+          </div>
+        </div>
+
+        <div class="metric m--pink">
+          <div class="metric-top">
+            <div class="metric-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4.5M12 17.2h.01"/></svg>
+            </div>
+            <span class="metric-delta">6d oldest</span>
+          </div>
+          <div>
+            <div class="metric-value">4</div>
+            <div class="metric-label">Past deadline</div>
+            <div class="metric-note">Two clients affected</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="filters">
+        <span class="filters-label">Filter</span>
+        <div class="pill-select">
+          <select aria-label="Manager">
+            <option>All managers</option><option>Jaspreet Kaur</option><option>Nikhil Sharma</option><option>Manreet Gill</option>
+          </select>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </div>
+        <div class="pill-select">
+          <select aria-label="Niche">
+            <option>All niches</option><option>Healthcare</option><option>Automotive</option><option>Interiors</option><option>Retail</option><option>Food &amp; beverage</option><option>Fitness</option>
+          </select>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </div>
+        <div class="pill-select">
+          <select aria-label="Status">
+            <option>Any status</option><option>On track</option><option>Needs attention</option><option>Past deadline</option><option>Onboarding</option>
+          </select>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </div>
+        <div class="pill-select">
+          <select aria-label="Month">
+            <option>September 2026</option><option>August 2026</option><option>July 2026</option>
+          </select>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </div>
+        <a href="#" class="link-clear">Reset</a>
+        <button class="btn-dark">Apply</button>
+      </section>
+
+      <div class="grid">
+
+        <section class="card">
+          <div class="card-head">
+            <div class="card-title">All clients</div>
+            <div class="card-tools">
+              <button class="tool">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5h10M11 12h10M11 19h10M4 7l2-2 2 2M6 5v14"/></svg>
+                Sort
+              </button>
+              <button class="tool">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                Edit columns
+              </button>
+            </div>
+          </div>
+
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Client</th>
+                  <th>Niche</th>
+                  <th>Manager</th>
+                  <th>Scope delivered</th>
+                  <th>Next shoot</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <div class="client">
+                      <div class="mono" style="background:linear-gradient(140deg,#8F80F7,#5A4AD8)">RD</div>
+                      <div>
+                        <div class="client-name">Ramana Dental</div>
+                        <div class="client-sub">@ramanadental · RAM-01</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span class="tag t--mint">Healthcare</span></td>
+                  <td><div class="mgr"><span class="face" style="background:linear-gradient(140deg,#8F80F7,#5A4AD8)">JK</span> Jaspreet</div></td>
+                  <td>
+                    <div class="scope">
+                      <span class="scope-pct">70%</span>
+                      <span class="track"><i style="width:70%"></i></span>
+                      <span class="scope-n">14/20</span>
+                    </div>
+                  </td>
+                  <td style="font-size:12.5px;color:var(--ink-soft);font-weight:600;white-space:nowrap">25 Sep · 9:00 AM</td>
+                  <td><span class="tag t--amber">2 approvals due</span></td>
+                  <td><button class="kebab" aria-label="Actions for Ramana Dental"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></button></td>
+                </tr>
+
+                <tr>
+                  <td>
+                    <div class="client">
+                      <div class="mono" style="background:linear-gradient(140deg,#63DCA9,#1FA772)">GM</div>
+                      <div>
+                        <div class="client-name">Grover Motors</div>
+                        <div class="client-sub">@grovermotors · GRV-02</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span class="tag t--sky">Automotive</span></td>
+                  <td><div class="mgr"><span class="face" style="background:linear-gradient(140deg,#8F80F7,#5A4AD8)">JK</span> Jaspreet</div></td>
+                  <td>
+                    <div class="scope">
+                      <span class="scope-pct">100%</span>
+                      <span class="track"><i class="done" style="width:100%"></i></span>
+                      <span class="scope-n">20/20</span>
+                    </div>
+                  </td>
+                  <td style="font-size:12.5px;color:var(--ink-soft);font-weight:600;white-space:nowrap">2 Oct · 11:30 AM</td>
+                  <td><span class="tag t--mint">On track</span></td>
+                  <td><button class="kebab" aria-label="Actions for Grover Motors"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></button></td>
+                </tr>
+
+                <tr>
+                  <td>
+                    <div class="client">
+                      <div class="mono" style="background:linear-gradient(140deg,#FFC974,#DF8A0E)">SI</div>
+                      <div>
+                        <div class="client-name">Sandhu Interiors</div>
+                        <div class="client-sub">@sandhu.interiors · SDH-03</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span class="tag t--lav">Interiors</span></td>
+                  <td><div class="mgr"><span class="face" style="background:linear-gradient(140deg,#F8A0BC,#DF5A86)">NS</span> Nikhil</div></td>
+                  <td>
+                    <div class="scope">
+                      <span class="scope-pct">37%</span>
+                      <span class="track"><i class="warn" style="width:37%"></i></span>
+                      <span class="scope-n">6/16</span>
+                    </div>
+                  </td>
+                  <td style="font-size:12.5px;color:var(--ink-soft);font-weight:600;white-space:nowrap">24 Sep · 4:00 PM</td>
+                  <td><span class="tag t--amber">4 approvals due</span></td>
+                  <td><button class="kebab" aria-label="Actions for Sandhu Interiors"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></button></td>
+                </tr>
+
+                <tr>
+                  <td>
+                    <div class="client">
+                      <div class="mono" style="background:linear-gradient(140deg,#F4739F,#BE2358)">KJ</div>
+                      <div>
+                        <div class="client-name">Khanna Jewellers</div>
+                        <div class="client-sub">@khannajewellers · KHN-04</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span class="tag t--amber">Retail</span></td>
+                  <td><div class="mgr"><span class="face" style="background:linear-gradient(140deg,#F8A0BC,#DF5A86)">NS</span> Nikhil</div></td>
+                  <td>
+                    <div class="scope">
+                      <span class="scope-pct">61%</span>
+                      <span class="track"><i class="warn" style="width:61%"></i></span>
+                      <span class="scope-n">11/18</span>
+                    </div>
+                  </td>
+                  <td style="font-size:12.5px;color:var(--muted);font-weight:600;white-space:nowrap">Not scheduled</td>
+                  <td><span class="tag t--pink">6 days late</span></td>
+                  <td><button class="kebab" aria-label="Actions for Khanna Jewellers"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></button></td>
+                </tr>
+
+                <tr>
+                  <td>
+                    <div class="client">
+                      <div class="mono" style="background:linear-gradient(140deg,#62A0F2,#14539F)">BC</div>
+                      <div>
+                        <div class="client-name">Basil Café</div>
+                        <div class="client-sub">@basil.ldh · BSL-05</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span class="tag t--sky">Food &amp; beverage</span></td>
+                  <td><div class="mgr"><span class="face" style="background:linear-gradient(140deg,#63DCA9,#1FA772)">MG</span> Manreet</div></td>
+                  <td>
+                    <div class="scope">
+                      <span class="scope-pct">75%</span>
+                      <span class="track"><i style="width:75%"></i></span>
+                      <span class="scope-n">9/12</span>
+                    </div>
+                  </td>
+                  <td style="font-size:12.5px;color:var(--ink-soft);font-weight:600;white-space:nowrap">26 Sep · 8:00 AM</td>
+                  <td><span class="tag t--amber">1 approval due</span></td>
+                  <td><button class="kebab" aria-label="Actions for Basil Cafe"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></button></td>
+                </tr>
+
+                <tr>
+                  <td>
+                    <div class="client">
+                      <div class="mono" style="background:linear-gradient(140deg,#BDBDD2,#8686A4)">VG</div>
+                      <div>
+                        <div class="client-name">Verdant Gym</div>
+                        <div class="client-sub">@verdant.fit · VRD-06</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span class="tag t--grey">Fitness</span></td>
+                  <td><div class="mgr"><span class="face" style="background:linear-gradient(140deg,#63DCA9,#1FA772)">MG</span> Manreet</div></td>
+                  <td>
+                    <div class="scope">
+                      <span class="scope-pct">0%</span>
+                      <span class="track"><i style="width:0%"></i></span>
+                      <span class="scope-n">0/10</span>
+                    </div>
+                  </td>
+                  <td style="font-size:12.5px;color:var(--muted);font-weight:600;white-space:nowrap">Not scheduled</td>
+                  <td><span class="tag t--grey">Onboarding</span></td>
+                  <td><button class="kebab" aria-label="Actions for Verdant Gym"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="table-foot">
+            <div class="foot-note">Showing <b>6</b> of <b>6</b> clients</div>
+            <div class="pager">
+              <button class="pg" disabled aria-label="Previous page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+              <button class="pg is-active" aria-current="page">1</button>
+              <button class="pg" disabled aria-label="Next page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+            </div>
+          </div>
+        </section>
+
+        <aside class="side">
+          <section class="card queue">
+            <div class="card-head" style="padding:0 0 4px">
+              <div class="card-title">Waiting on you</div>
+              <div class="card-tools"><button class="tool">Clear</button></div>
+            </div>
+
+            <div class="queue-item q--pink">
+              <div class="queue-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="4"/><path d="m10 9 5 3-5 3V9Z"/></svg>
+              </div>
+              <div class="queue-body">
+                <div class="queue-title">Diwali offer reel · cut 3</div>
+                <div class="queue-meta">Khanna Jewellers · Nikhil</div>
+              </div>
+              <span class="queue-age">6d</span>
+            </div>
+
+            <div class="queue-item q--amber">
+              <div class="queue-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="4"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+              </div>
+              <div class="queue-body">
+                <div class="queue-title">October calendar approval</div>
+                <div class="queue-meta">Sandhu Interiors · Nikhil</div>
+              </div>
+              <span class="queue-age">2d</span>
+            </div>
+
+            <div class="queue-item q--lav">
+              <div class="queue-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M18 8v6M21 11h-6"/></svg>
+              </div>
+              <div class="queue-body">
+                <div class="queue-title">Assign a manager</div>
+                <div class="queue-meta">Verdant Gym · unassigned</div>
+              </div>
+              <span class="queue-age">New</span>
+            </div>
+
+            <a href="#" class="queue-all">See all 9 items</a>
+          </section>
+
+          <section class="promo">
+            <div class="promo-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17V9M9 17V5M15 17v-6M21 17v-9"/><path d="M2 21h20"/></svg>
+            </div>
+            <h3>Scope check</h3>
+            <p>Two accounts are tracking below half their monthly scope with seven days left.</p>
+            <button>Open report</button>
+          </section>
+        </aside>
+
+      </div>
+    </section>
+
+    <!-- ================= CALENDAR ================= -->
+    <section class="screen" id="screen-calendar">
+      <section class="hero-row" style="grid-template-columns:1fr">
+        <div class="hello">
+          <h1>Calendar<span class="light">September 2026</span></h1>
+          <p>Every shoot on the books this month, colour-coded by client.</p>
+        </div>
+      </section>
+
+      <div class="grid">
+        <section class="card" style="padding:22px 26px">
+          <div class="card-head" style="padding:0 0 16px">
+            <div class="card-title">September 2026</div>
+            <div class="card-tools">
+              <button class="tool" aria-label="Previous month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+              <button class="tool" aria-label="Next month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+            </div>
+          </div>
+          <div class="cal-grid">
+            <div class="cal-dow">Mon</div><div class="cal-dow">Tue</div><div class="cal-dow">Wed</div><div class="cal-dow">Thu</div><div class="cal-dow">Fri</div><div class="cal-dow">Sat</div><div class="cal-dow">Sun</div>
+            <div class="cal-day is-empty"></div>
+            <div class="cal-day"><span class="cal-daynum">1</span></div>
+            <div class="cal-day"><span class="cal-daynum">2</span></div>
+            <div class="cal-day"><span class="cal-daynum">3</span></div>
+            <div class="cal-day"><span class="cal-daynum">4</span></div>
+            <div class="cal-day"><span class="cal-daynum">5</span></div>
+            <div class="cal-day"><span class="cal-daynum">6</span></div>
+            <div class="cal-day"><span class="cal-daynum">7</span></div>
+            <div class="cal-day"><span class="cal-daynum">8</span></div>
+            <div class="cal-day"><span class="cal-daynum">9</span></div>
+            <div class="cal-day"><span class="cal-daynum">10</span></div>
+            <div class="cal-day"><span class="cal-daynum">11</span></div>
+            <div class="cal-day"><span class="cal-daynum">12</span></div>
+            <div class="cal-day"><span class="cal-daynum">13</span></div>
+            <div class="cal-day"><span class="cal-daynum">14</span></div>
+            <div class="cal-day"><span class="cal-daynum">15</span></div>
+            <div class="cal-day"><span class="cal-daynum">16</span></div>
+            <div class="cal-day"><span class="cal-daynum">17</span></div>
+            <div class="cal-day"><span class="cal-daynum">18</span></div>
+            <div class="cal-day"><span class="cal-daynum">19</span></div>
+            <div class="cal-day"><span class="cal-daynum">20</span></div>
+            <div class="cal-day"><span class="cal-daynum">21</span></div>
+            <div class="cal-day"><span class="cal-daynum">22</span></div>
+            <div class="cal-day is-today" aria-label="23 September, today, no shoots"><span class="cal-daynum">23</span></div>
+            <button class="cal-day" data-shoot="sandhu"><span class="cal-daynum">24</span><span class="cal-chip c--sdh">Sandhu · 4:00 PM</span></button>
+            <button class="cal-day" data-shoot="ramana"><span class="cal-daynum">25</span><span class="cal-chip c--ram">Ramana · 9:00 AM</span></button>
+            <button class="cal-day" data-shoot="basil"><span class="cal-daynum">26</span><span class="cal-chip c--bsl">Basil · 8:00 AM</span></button>
+            <div class="cal-day"><span class="cal-daynum">27</span></div>
+            <div class="cal-day"><span class="cal-daynum">28</span></div>
+            <div class="cal-day"><span class="cal-daynum">29</span></div>
+            <div class="cal-day"><span class="cal-daynum">30</span></div>
+          </div>
+        </section>
+
+        <aside class="side">
+          <section class="card queue">
+            <div class="card-head" style="padding:0 0 4px">
+              <div class="card-title">Upcoming shoots</div>
+            </div>
+            <button class="shoot-row" data-shoot="sandhu">
+              <span class="shoot-time">24 Sep<br>4:00 PM</span>
+              <span class="shoot-body">
+                <span class="shoot-client">Sandhu site visit</span>
+                <span class="shoot-meta">Sandhu Interiors · Harpreet Singh</span>
+              </span>
+            </button>
+            <button class="shoot-row" data-shoot="ramana">
+              <span class="shoot-time">25 Sep<br>9:00 AM</span>
+              <span class="shoot-body">
+                <span class="shoot-client">Ramana shoot</span>
+                <span class="shoot-meta">Ramana Dental · Vikram Rana</span>
+              </span>
+            </button>
+            <button class="shoot-row" data-shoot="basil">
+              <span class="shoot-time">26 Sep<br>8:00 AM</span>
+              <span class="shoot-body">
+                <span class="shoot-client">Basil shoot</span>
+                <span class="shoot-meta">Basil Café · Harpreet Singh</span>
+              </span>
+            </button>
+            <button class="shoot-row" data-shoot="grover">
+              <span class="shoot-time">2 Oct<br>11:30 AM</span>
+              <span class="shoot-body">
+                <span class="shoot-client">Grover showroom shoot</span>
+                <span class="shoot-meta">Grover Motors · Vikram Rana</span>
+              </span>
+            </button>
+          </section>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ================= EDITORS' DEN ================= -->
+    <section class="screen" id="screen-den">
+      <div id="den-list-view">
+        <section class="hero-row" style="grid-template-columns:1fr">
+          <div class="hello">
+            <h1>Editors' den<span class="light">Cuts awaiting review, oldest deadline first</span></h1>
+            <p>Four cuts need your eyes before they go back to the client or out the door.</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <div class="card-title">Awaiting review</div>
+          </div>
+          <div>
+            <button class="den-row" data-review="diwali">
+              <div class="avatar-sq" style="background:linear-gradient(140deg,#F4739F,#BE2358)">KJ</div>
+              <div class="den-main">
+                <div class="den-idea">Diwali offer reel · cut 3</div>
+                <div class="den-meta">Khanna Jewellers · edited by Simran Kaur · v3</div>
+              </div>
+              <span class="den-deadline">6d late</span>
+              <span class="tag t--pink">Changes requested</span>
+            </button>
+            <button class="den-row" data-review="menu">
+              <div class="avatar-sq" style="background:linear-gradient(140deg,#62A0F2,#14539F)">BC</div>
+              <div class="den-main">
+                <div class="den-idea">New season menu</div>
+                <div class="den-meta">Basil Café · edited by Rohit Bansal · v1</div>
+              </div>
+              <span class="den-deadline">Due today</span>
+              <span class="tag t--amber">Cut submitted</span>
+            </button>
+            <button class="den-row" data-review="barista">
+              <div class="avatar-sq" style="background:linear-gradient(140deg,#62A0F2,#14539F)">BC</div>
+              <div class="den-main">
+                <div class="den-idea">Barista's pick</div>
+                <div class="den-meta">Basil Café · edited by Simran Kaur · v2</div>
+              </div>
+              <span class="den-deadline">24 Sep</span>
+              <span class="tag t--lav">Cut submitted</span>
+            </button>
+            <button class="den-row" data-review="kitchen">
+              <div class="avatar-sq" style="background:linear-gradient(140deg,#FFC974,#DF8A0E)">SI</div>
+              <div class="den-main">
+                <div class="den-idea">Modular kitchen reveal</div>
+                <div class="den-meta">Sandhu Interiors · edited by Rohit Bansal · v1</div>
+              </div>
+              <span class="den-deadline">27 Sep</span>
+              <span class="tag t--lav">Cut submitted</span>
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <!-- review detail -->
+      <div id="den-review-view" style="display:none">
+        <a href="#" class="back-link" id="den-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Back to Editors' den</a>
+        <div class="review-layout">
+          <section class="card" style="padding:22px">
+            <div class="video-ph">
+              <div class="play-glyph"><svg viewBox="0 0 24 24" fill="#fff"><path d="M8 5v14l11-7z"/></svg></div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:18px;flex-wrap:wrap;gap:12px">
+              <div>
+                <div style="font-size:16px;font-weight:800">Diwali offer reel · cut 3</div>
+                <div style="font-size:12.5px;color:var(--muted);margin-top:4px">Khanna Jewellers · Simran Kaur · version 3</div>
+              </div>
+              <div style="display:flex;gap:10px">
+                <button class="btn-pink">Send changes</button>
+                <button class="btn-dark">Approve</button>
+              </div>
+            </div>
+          </section>
+
+          <aside class="card" style="padding:20px 22px">
+            <div class="card-title" style="margin-bottom:14px">Comments</div>
+
+            <div class="comment">
+              <div class="comment-head"><span class="comment-ts">0:11–0:14</span><span class="comment-author">Nikhil Sharma</span></div>
+              <div class="comment-text">The offer text is covering the product shot here — push it down or shrink it.</div>
+            </div>
+            <div class="comment">
+              <div class="comment-head"><span class="comment-ts">0:38–0:41</span><span class="comment-author">Nikhil Sharma</span></div>
+              <div class="comment-text">Music drops out oddly on the cut. Can we crossfade instead?</div>
+            </div>
+            <div class="comment">
+              <div class="comment-head"><span class="comment-ts">1:02–1:07</span><span class="comment-author">Khanna Jewellers (client)</span></div>
+              <div class="voice-note">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 11a7 7 0 0 1-14 0M12 18v4"/></svg>
+                <span class="voice-wave" aria-hidden="true"></span>
+                <span style="font-size:11px;font-weight:700;color:var(--ink-soft)">0:09</span>
+              </div>
+              <div class="transcript">"Can you end on the diya shot instead of the logo? Feels more festive to close on."</div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= POSTING SCHEDULE ================= -->
+    <section class="screen" id="screen-posting">
+      <section class="hero-row" style="grid-template-columns:1fr">
+        <div class="hello">
+          <h1>Posting schedule<span class="light">September 2026</span></h1>
+          <p>What's going out, when, and in what format — across every client.</p>
+        </div>
+      </section>
+
+      <div class="grid">
+        <section class="card" style="padding:22px 26px">
+          <div class="card-head" style="padding:0 0 16px"><div class="card-title">September 2026</div></div>
+          <div class="cal-grid">
+            <div class="cal-dow">Mon</div><div class="cal-dow">Tue</div><div class="cal-dow">Wed</div><div class="cal-dow">Thu</div><div class="cal-dow">Fri</div><div class="cal-dow">Sat</div><div class="cal-dow">Sun</div>
+            <div class="cal-day is-empty"></div>
+            <div class="cal-day"><span class="cal-daynum">1</span></div><div class="cal-day"><span class="cal-daynum">2</span></div><div class="cal-day"><span class="cal-daynum">3</span></div><div class="cal-day"><span class="cal-daynum">4</span></div><div class="cal-day"><span class="cal-daynum">5</span></div><div class="cal-day"><span class="cal-daynum">6</span></div>
+            <div class="cal-day"><span class="cal-daynum">7</span></div><div class="cal-day"><span class="cal-daynum">8</span></div><div class="cal-day"><span class="cal-daynum">9</span></div><div class="cal-day"><span class="cal-daynum">10</span></div><div class="cal-day"><span class="cal-daynum">11</span></div><div class="cal-day"><span class="cal-daynum">12</span></div><div class="cal-day"><span class="cal-daynum">13</span></div>
+            <div class="cal-day"><span class="cal-daynum">14</span></div><div class="cal-day"><span class="cal-daynum">15</span></div><div class="cal-day"><span class="cal-daynum">16</span></div><div class="cal-day"><span class="cal-daynum">17</span></div><div class="cal-day"><span class="cal-daynum">18</span></div><div class="cal-day"><span class="cal-daynum">19</span></div>
+            <button class="cal-day" data-post="showroom"><span class="cal-daynum">20</span><span class="cal-chip c--bsl">Grover · 10:00 AM</span></button>
+            <div class="cal-day"><span class="cal-daynum">21</span></div><div class="cal-day"><span class="cal-daynum">22</span></div>
+            <div class="cal-day is-today"><span class="cal-daynum">23</span></div>
+            <div class="cal-day"><span class="cal-daynum">24</span></div><div class="cal-day"><span class="cal-daynum">25</span></div><div class="cal-day"><span class="cal-daynum">26</span></div><div class="cal-day"><span class="cal-daynum">27</span></div>
+            <button class="cal-day" data-post="service"><span class="cal-daynum">28</span><span class="cal-chip c--bsl">Grover · 5:00 PM</span></button>
+            <div class="cal-day"><span class="cal-daynum">29</span></div>
+            <button class="cal-day" data-post="rootcanal"><span class="cal-daynum">30</span><span class="cal-chip c--ram">Ramana · 9:00 AM</span></button>
+          </div>
+        </section>
+
+        <aside class="side">
+          <section class="card queue" id="posting-panel">
+            <div class="card-head" style="padding:0 0 4px">
+              <div class="card-title" id="posting-panel-title">28 September</div>
+            </div>
+            <div class="queue-item q--sky">
+              <div class="queue-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="4"/><path d="m10 9 5 3-5 3V9Z"/></svg></div>
+              <div class="queue-body">
+                <div class="queue-title">Service package explainer</div>
+                <div class="queue-meta">Grover Motors · 5:00 PM · Reel</div>
+              </div>
+            </div>
+            <div style="padding:12px 0 16px;font-size:12px;color:var(--ink-soft);line-height:1.6">
+              <b>Caption:</b> "Book your free service check this Diwali — link in bio."<br>
+              <b>Music:</b> Upbeat instrumental, licensed bed "Momentum"
+            </div>
+            <button class="btn-soft" style="width:100%;justify-content:center">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>
+              Download final cut
+            </button>
+          </section>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ================= CONTENT PLANNER ================= -->
+    <section class="screen" id="screen-planner">
+      <section class="hero-row" style="grid-template-columns:1fr">
+        <div class="hello">
+          <h1>Content planner<span class="light">Plan the month before you shoot it</span></h1>
+          <p>Pick a client, then lay out what gets made and when.</p>
+        </div>
+      </section>
+
+      <section class="filters">
+        <span class="filters-label">Client</span>
+        <div class="pill-select">
+          <select aria-label="Client">
+            <option>Ramana Dental</option><option>Grover Motors</option><option>Sandhu Interiors</option><option>Khanna Jewellers</option><option>Basil Café</option><option>Verdant Gym</option>
+          </select>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </div>
+        <div class="seg" role="group" aria-label="View" style="margin-left:auto">
+          <button class="is-active">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="4"/><path d="M3 10h18"/></svg>
+            Calendar
+          </button>
+          <button>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+            List
+          </button>
+        </div>
+      </section>
+
+      <div class="grid">
+        <section class="card" style="padding:22px 26px">
+          <div class="card-head" style="padding:0 0 16px"><div class="card-title">September 2026 · Ramana Dental</div></div>
+          <div class="cal-grid">
+            <div class="cal-dow">Mon</div><div class="cal-dow">Tue</div><div class="cal-dow">Wed</div><div class="cal-dow">Thu</div><div class="cal-dow">Fri</div><div class="cal-dow">Sat</div><div class="cal-dow">Sun</div>
+            <div class="cal-day is-empty"></div>
+            <div class="cal-day"><span class="cal-daynum">1</span></div><div class="cal-day"><span class="cal-daynum">2</span></div><div class="cal-day"><span class="cal-daynum">3</span></div><div class="cal-day"><span class="cal-daynum">4</span></div><div class="cal-day"><span class="cal-daynum">5</span></div><div class="cal-day"><span class="cal-daynum">6</span></div>
+            <div class="cal-day"><span class="cal-daynum">7</span></div><div class="cal-day"><span class="cal-daynum">8</span></div><div class="cal-day"><span class="cal-daynum">9</span></div><div class="cal-day"><span class="cal-daynum">10</span></div><div class="cal-day"><span class="cal-daynum">11</span></div><div class="cal-day"><span class="cal-daynum">12</span></div><div class="cal-day"><span class="cal-daynum">13</span></div>
+            <div class="cal-day"><span class="cal-daynum">14</span></div><div class="cal-day"><span class="cal-daynum">15</span></div><div class="cal-day"><span class="cal-daynum">16</span></div><div class="cal-day"><span class="cal-daynum">17</span></div><div class="cal-day"><span class="cal-daynum">18</span></div><div class="cal-day"><span class="cal-daynum">19</span></div><div class="cal-day"><span class="cal-daynum">20</span></div>
+            <div class="cal-day"><span class="cal-daynum">21</span></div><div class="cal-day"><span class="cal-daynum">22</span></div>
+            <div class="cal-day is-today"><span class="cal-daynum">23</span></div>
+            <button class="cal-day" data-plan="rootcanal"><span class="cal-daynum">24</span><span class="cal-chip c--ram">Reel</span><span class="tag t--sky" style="font-size:9.5px;padding:2px 7px">With client</span></button>
+            <div class="cal-day"><span class="cal-daynum">25</span></div><div class="cal-day"><span class="cal-daynum">26</span></div>
+            <button class="cal-day" id="planner-empty-day" data-plan-empty="27 September"><span class="cal-daynum">27</span></button>
+            <div class="cal-day"><span class="cal-daynum">28</span></div><div class="cal-day"><span class="cal-daynum">29</span></div>
+            <button class="cal-day" data-plan="smile"><span class="cal-daynum">30</span><span class="cal-chip c--ram">Reel</span><span class="tag t--lav" style="font-size:9.5px;padding:2px 7px">With editor</span></button>
+          </div>
+        </section>
+
+        <aside class="side">
+          <section class="card queue" id="planner-detail">
+            <div class="card-head" style="padding:0 0 4px"><div class="card-title" id="planner-detail-title">24 September</div></div>
+            <div class="queue-item q--sky">
+              <div class="queue-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="4"/><path d="m10 9 5 3-5 3V9Z"/></svg></div>
+              <div class="queue-body">
+                <div class="queue-title">Root canal myths</div>
+                <div class="queue-meta">Reel · With client</div>
+              </div>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </section>
+
+    <!-- planner empty-day helper (shown inline as a note under the grid via JS, no extra markup needed) -->
+
+    <!-- ================= TEAM ================= -->
+    <section class="screen" id="screen-team">
+      <section class="hero-row">
+        <div class="hello">
+          <h1>Team<span class="light">Who's actually doing the work</span></h1>
+          <p>Scope of work versus what's landed, per person, this month.</p>
+        </div>
+        <div class="metric m--violet">
+          <div class="metric-top">
+            <div class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+          </div>
+          <div>
+            <div class="metric-value">101</div>
+            <div class="metric-label">Items delivered</div>
+            <div class="metric-note">This month, across the team</div>
+          </div>
+        </div>
+        <div class="metric m--mint">
+          <div class="metric-top">
+            <div class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 6.5V12l3.5 2"/></svg></div>
+          </div>
+          <div>
+            <div class="metric-value">2.1d</div>
+            <div class="metric-label">Avg. turnaround</div>
+            <div class="metric-note">Assigned to delivered</div>
+          </div>
+        </div>
+        <div class="metric m--amber">
+          <div class="metric-top">
+            <div class="metric-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4.5M12 17.2h.01"/></svg></div>
+          </div>
+          <div>
+            <div class="metric-value">84%</div>
+            <div class="metric-label">On-time rate</div>
+            <div class="metric-note">Team average</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><div class="card-title">Performance this month</div></div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th>Member</th><th>Role</th><th>Assigned clients</th><th>Delivered</th><th>Revisions / item</th><th>Avg turnaround</th><th>On-time rate</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><div class="client"><div class="mono" style="background:linear-gradient(140deg,#8F80F7,#5A4AD8)">JK</div><div class="client-name">Jaspreet Kaur</div></div></td>
+                <td><span class="tag t--lav">Brand Manager</span></td>
+                <td style="font-size:12.5px;color:var(--ink-soft)">Ramana Dental, Grover Motors</td>
+                <td style="font-weight:700">34</td>
+                <td>1.2</td>
+                <td>2.1d</td>
+                <td><span class="tag t--mint">92%</span></td>
+              </tr>
+              <tr>
+                <td><div class="client"><div class="mono" style="background:linear-gradient(140deg,#F8A0BC,#DF5A86)">NS</div><div class="client-name">Nikhil Sharma</div></div></td>
+                <td><span class="tag t--lav">Brand Manager</span></td>
+                <td style="font-size:12.5px;color:var(--ink-soft)">Sandhu Interiors, Khanna Jewellers</td>
+                <td style="font-weight:700">17</td>
+                <td>2.4</td>
+                <td>3.6d</td>
+                <td><span class="tag t--pink">61%</span></td>
+              </tr>
+              <tr>
+                <td><div class="client"><div class="mono" style="background:linear-gradient(140deg,#63DCA9,#1FA772)">MG</div><div class="client-name">Manreet Gill</div></div></td>
+                <td><span class="tag t--lav">Brand Manager</span></td>
+                <td style="font-size:12.5px;color:var(--ink-soft)">Basil Café, Verdant Gym</td>
+                <td style="font-weight:700">9</td>
+                <td>1.0</td>
+                <td>1.8d</td>
+                <td><span class="tag t--mint">100%</span></td>
+              </tr>
+              <tr>
+                <td><div class="client"><div class="mono" style="background:linear-gradient(140deg,#62A0F2,#14539F)">RB</div><div class="client-name">Rohit Bansal</div></div></td>
+                <td><span class="tag t--sky">Editor</span></td>
+                <td style="font-size:12.5px;color:var(--ink-soft)">All clients</td>
+                <td style="font-weight:700">22</td>
+                <td>1.6</td>
+                <td>1.4d</td>
+                <td><span class="tag t--mint">88%</span></td>
+              </tr>
+              <tr>
+                <td><div class="client"><div class="mono" style="background:linear-gradient(140deg,#FFC974,#DF8A0E)">SK</div><div class="client-name">Simran Kaur</div></div></td>
+                <td><span class="tag t--sky">Editor</span></td>
+                <td style="font-size:12.5px;color:var(--ink-soft)">All clients</td>
+                <td style="font-weight:700">19</td>
+                <td>2.1</td>
+                <td>2.0d</td>
+                <td><span class="tag t--amber">74%</span></td>
+              </tr>
+              <tr>
+                <td><div class="client"><div class="mono" style="background:linear-gradient(140deg,#63DCA9,#1FA772)">HS</div><div class="client-name">Harpreet Singh</div></div></td>
+                <td><span class="tag t--grey">Cameraman</span></td>
+                <td style="font-size:12.5px;color:var(--ink-soft)">All clients</td>
+                <td style="font-weight:700">12 shoots</td>
+                <td>—</td>
+                <td>—</td>
+                <td><span class="tag t--mint">95%</span></td>
+              </tr>
+              <tr>
+                <td><div class="client"><div class="mono" style="background:linear-gradient(140deg,#62A0F2,#14539F)">VR</div><div class="client-name">Vikram Rana</div></div></td>
+                <td><span class="tag t--grey">Cameraman</span></td>
+                <td style="font-size:12.5px;color:var(--ink-soft)">All clients</td>
+                <td style="font-weight:700">10 shoots</td>
+                <td>—</td>
+                <td>—</td>
+                <td><span class="tag t--amber">80%</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <!-- ================= SETTINGS ================= -->
+    <section class="screen" id="screen-settings">
+      <section class="hero-row" style="grid-template-columns:1fr">
+        <div class="hello">
+          <h1>Settings<span class="light">Agency profile &amp; connections</span></h1>
+          <p>How Ashmeet SMMA is wired into Drive, Backblaze, and the team.</p>
+        </div>
+      </section>
+
+      <div class="settings-grid">
+        <section class="panel">
+          <div class="card-title" style="margin-bottom:14px">Agency profile</div>
+          <div class="field"><label for="ag-name">Agency name</label><input id="ag-name" type="text" value="Ashmeet SMMA"></div>
+          <div class="field"><label for="ag-owner">Owner</label><input id="ag-owner" type="text" value="Ashmeet Chaurasia"></div>
+          <div class="field" style="margin-bottom:0"><label for="ag-city">Location</label><input id="ag-city" type="text" value="Ludhiana, Punjab"></div>
+        </section>
+
+        <section class="panel">
+          <div class="card-title" style="margin-bottom:14px">Connections</div>
+          <div class="settings-row">
+            <div>
+              <div class="settings-row-label"><span class="status-dot" style="background:#22A874"></span>Google Workspace</div>
+              <div class="settings-row-note">Drive Shared Drive &amp; OAuth sign-in</div>
+            </div>
+            <span class="tag t--mint">Connected</span>
+          </div>
+          <div class="settings-row">
+            <div>
+              <div class="settings-row-label"><span class="status-dot" style="background:#22A874"></span>Backblaze B2</div>
+              <div class="settings-row-note">Edited cuts &amp; voice notes</div>
+            </div>
+            <span class="tag t--mint">Connected</span>
+          </div>
+          <div style="padding-top:14px">
+            <div class="settings-row-label">Drive storage</div>
+            <div class="settings-row-note">1.64 TB of 2 TB used</div>
+            <div class="usage-track"><span class="usage-fill" style="width:82%;background:linear-gradient(90deg,#FFC974,#E8901A)"></span></div>
+            <div style="font-size:11.5px;color:var(--amber-ink);font-weight:700;margin-top:8px">Approaching threshold — review raw footage eligible for deletion</div>
+          </div>
+        </section>
+      </div>
+
+      <section class="card" style="margin-top:18px">
+        <div class="card-head">
+          <div class="card-title">Team members</div>
+          <div class="card-tools"><button class="btn-dark" style="height:36px;padding:0 16px">Invite member</button></div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Member</th><th>Role</th><th>Email</th><th></th></tr></thead>
+            <tbody>
+              <tr><td><div class="client"><div class="mono" style="background:linear-gradient(140deg,#8F80F7,#5A4AD8)">AC</div><div class="client-name">Ashmeet Chaurasia</div></div></td><td><span class="tag t--lav">Owner</span></td><td style="font-size:12.5px;color:var(--ink-soft)">ashmeet@ashmeetsmma.com</td><td><button class="kebab" aria-label="Actions for Ashmeet Chaurasia"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></button></td></tr>
+              <tr><td><div class="client"><div class="mono" style="background:linear-gradient(140deg,#8F80F7,#5A4AD8)">JK</div><div class="client-name">Jaspreet Kaur</div></div></td><td><span class="tag t--sky">Brand Manager</span></td><td style="font-size:12.5px;color:var(--ink-soft)">jaspreet@ashmeetsmma.com</td><td><button class="kebab" aria-label="Actions for Jaspreet Kaur"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></button></td></tr>
+              <tr><td><div class="client"><div class="mono" style="background:linear-gradient(140deg,#F8A0BC,#DF5A86)">NS</div><div class="client-name">Nikhil Sharma</div></div></td><td><span class="tag t--sky">Brand Manager</span></td><td style="font-size:12.5px;color:var(--ink-soft)">nikhil@ashmeetsmma.com</td><td><button class="kebab" aria-label="Actions for Nikhil Sharma"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></button></td></tr>
+              <tr><td><div class="client"><div class="mono" style="background:linear-gradient(140deg,#63DCA9,#1FA772)">MG</div><div class="client-name">Manreet Gill</div></div></td><td><span class="tag t--sky">Brand Manager</span></td><td style="font-size:12.5px;color:var(--ink-soft)">manreet@ashmeetsmma.com</td><td><button class="kebab" aria-label="Actions for Manreet Gill"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></button></td></tr>
+              <tr><td><div class="client"><div class="mono" style="background:linear-gradient(140deg,#62A0F2,#14539F)">RB</div><div class="client-name">Rohit Bansal</div></div></td><td><span class="tag t--grey">Editor</span></td><td style="font-size:12.5px;color:var(--ink-soft)">rohit@ashmeetsmma.com</td><td><button class="kebab" aria-label="Actions for Rohit Bansal"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></button></td></tr>
+              <tr><td><div class="client"><div class="mono" style="background:linear-gradient(140deg,#FFC974,#DF8A0E)">SK</div><div class="client-name">Simran Kaur</div></div></td><td><span class="tag t--grey">Editor</span></td><td style="font-size:12.5px;color:var(--ink-soft)">simran@ashmeetsmma.com</td><td><button class="kebab" aria-label="Actions for Simran Kaur"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></button></td></tr>
+              <tr><td><div class="client"><div class="mono" style="background:linear-gradient(140deg,#63DCA9,#1FA772)">HS</div><div class="client-name">Harpreet Singh</div></div></td><td><span class="tag t--grey">Cameraman</span></td><td style="font-size:12.5px;color:var(--ink-soft)">harpreet@ashmeetsmma.com</td><td><button class="kebab" aria-label="Actions for Harpreet Singh"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></button></td></tr>
+              <tr><td><div class="client"><div class="mono" style="background:linear-gradient(140deg,#62A0F2,#14539F)">VR</div><div class="client-name">Vikram Rana</div></div></td><td><span class="tag t--grey">Cameraman</span></td><td style="font-size:12.5px;color:var(--ink-soft)">vikram@ashmeetsmma.com</td><td><button class="kebab" aria-label="Actions for Vikram Rana"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg></button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+
+  </div>
+</div>
+
+<!-- ================= modals / drawers (shared, hidden by default) ================= -->
+
+<div class="drawer-backdrop" id="shoot-drawer-backdrop" style="display:none"></div>
+<aside class="drawer" id="shoot-drawer" style="display:none" aria-label="Shoot detail">
+  <div class="modal-head">
+    <div class="modal-title" id="shoot-drawer-title">Ramana shoot</div>
+    <button class="modal-close" id="shoot-drawer-close" aria-label="Close shoot detail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+  </div>
+  <div class="modal-body" id="shoot-drawer-body"></div>
+</aside>
+
+<div class="modal-backdrop" id="plan-modal-backdrop" style="display:none">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="plan-modal-title">
+    <div class="modal-head">
+      <div class="modal-title" id="plan-modal-title">Plan content · 27 Sep</div>
+      <button class="modal-close" id="plan-modal-close" aria-label="Close plan form"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field"><label for="pf-type">Type</label>
+        <select id="pf-type"><option>Reel</option><option>Post</option><option>Carousel</option><option>Story</option></select>
+      </div>
+      <div class="field"><label for="pf-date">Date &amp; time</label><input id="pf-date" type="text" value="27 Sep · 10:00 AM"></div>
+      <div class="field"><label for="pf-ref">Reference link</label><input id="pf-ref" type="text" placeholder="https://drive.google.com/…"></div>
+      <div class="field"><label for="pf-ei">Instructions for editor</label><textarea id="pf-ei" placeholder="Concept, pacing, music mood…"></textarea></div>
+      <div class="field"><label for="pf-ci">Instructions for cameraman</label><textarea id="pf-ci" placeholder="Shot list, angles, talking points…"></textarea></div>
+      <div class="field"><label for="pf-img">Image references</label><input id="pf-img" type="text" placeholder="Attach or paste links"></div>
+      <div class="field"><label for="pf-status">Status</label>
+        <select id="pf-status"><option>Planned</option><option>Calendar approved</option></select>
+      </div>
+      <div class="field" style="margin-bottom:0"><label for="pf-notes">Notes</label><textarea id="pf-notes" placeholder="Anything else worth flagging"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-soft" id="plan-modal-cancel">Cancel</button>
+      <button class="btn-dark" id="plan-modal-save">Save plan</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ---- rail navigation ----
+  var railBtns = document.querySelectorAll('.rail-btn[data-screen]');
+  var screens = document.querySelectorAll('.screen');
+  railBtns.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      railBtns.forEach(function(b){ b.classList.remove('is-active'); b.removeAttribute('aria-current'); });
+      btn.classList.add('is-active');
+      btn.setAttribute('aria-current','page');
+      var target = 'screen-' + btn.dataset.screen;
+      screens.forEach(function(s){ s.classList.toggle('is-visible', s.id === target); });
+      // reset editors' den to list view whenever navigated to
+      if (btn.dataset.screen === 'den'){
+        document.getElementById('den-list-view').style.display = '';
+        document.getElementById('den-review-view').style.display = 'none';
+      }
+    });
+  });
+
+  // ---- light/dark segmented control (visual only, no persistence) ----
+  document.querySelectorAll('.seg').forEach(function(seg){
+    seg.querySelectorAll('button').forEach(function(b){
+      b.addEventListener('click', function(){
+        seg.querySelectorAll('button').forEach(function(x){ x.classList.remove('is-active'); });
+        b.classList.add('is-active');
+      });
+    });
+  });
+
+  // ---- shoot detail drawer ----
+  var shootData = {
+    ramana:{title:'Ramana shoot', date:'25 Sep · 9:00 AM', client:'Ramana Dental', cameraman:'Vikram Rana', ideas:['Smile makeover before/after','Root canal myths']},
+    sandhu:{title:'Sandhu site visit', date:'24 Sep · 4:00 PM', client:'Sandhu Interiors', cameraman:'Harpreet Singh', ideas:['Modular kitchen reveal','Client testimonial — Mrs. Bedi']},
+    basil:{title:'Basil shoot', date:'26 Sep · 8:00 AM', client:'Basil Café', cameraman:'Harpreet Singh', ideas:['New season menu','Barista\'s pick']},
+    grover:{title:'Grover showroom shoot', date:'2 Oct · 11:30 AM', client:'Grover Motors', cameraman:'Vikram Rana', ideas:['Service package explainer']}
+  };
+  var drawer = document.getElementById('shoot-drawer');
+  var drawerBg = document.getElementById('shoot-drawer-backdrop');
+  function openShoot(key){
+    var d = shootData[key]; if(!d) return;
+    document.getElementById('shoot-drawer-title').textContent = d.title;
+    document.getElementById('shoot-drawer-body').innerHTML =
+      '<div class="field"><label>Date &amp; time</label><div style="font-size:13.5px;font-weight:700">'+d.date+'</div></div>'+
+      '<div class="field"><label>Client</label><div style="font-size:13.5px;font-weight:700">'+d.client+'</div></div>'+
+      '<div class="field"><label>Cameraman</label><div style="font-size:13.5px;font-weight:700">'+d.cameraman+'</div></div>'+
+      '<div class="field"><label>Content ideas covered</label><div style="font-size:13px;color:var(--ink-soft);line-height:1.9">'+d.ideas.map(function(i){return '• '+i;}).join('<br>')+'</div></div>'+
+      '<button class="btn-dark" style="width:100%;justify-content:center;margin-top:6px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 11l5 5 5-5"/><path d="M4 20h16"/></svg>Open Drive folder</button>';
+    drawer.style.display = 'block'; drawerBg.style.display = 'block';
+  }
+  document.querySelectorAll('[data-shoot]').forEach(function(el){
+    el.addEventListener('click', function(){ openShoot(el.dataset.shoot); });
+  });
+  document.getElementById('shoot-drawer-close').addEventListener('click', closeDrawer);
+  drawerBg.addEventListener('click', closeDrawer);
+  function closeDrawer(){ drawer.style.display='none'; drawerBg.style.display='none'; }
+
+  // ---- editors' den review ----
+  document.querySelectorAll('[data-review]').forEach(function(el){
+    el.addEventListener('click', function(){
+      document.getElementById('den-list-view').style.display = 'none';
+      document.getElementById('den-review-view').style.display = '';
+    });
+  });
+  document.getElementById('den-back').addEventListener('click', function(e){
+    e.preventDefault();
+    document.getElementById('den-list-view').style.display = '';
+    document.getElementById('den-review-view').style.display = 'none';
+  });
+
+  // ---- posting schedule day select ----
+  var postData = {
+    showroom:{title:'20 September', name:'Showroom walkthrough', meta:'Grover Motors · 10:00 AM · Reel', caption:'"See the new showroom floor before anyone else does."', music:'Music: Ambient corporate, licensed bed "Skyline"'},
+    service:{title:'28 September', name:'Service package explainer', meta:'Grover Motors · 5:00 PM · Reel', caption:'"Book your free service check this Diwali — link in bio."', music:'Music: Upbeat instrumental, licensed bed "Momentum"'},
+    rootcanal:{title:'30 September', name:'Root canal myths', meta:'Ramana Dental · 9:00 AM · Carousel', caption:'"5 things your dentist wishes you knew about root canals."', music:'Music: None (carousel)'}
+  };
+  document.querySelectorAll('[data-post]').forEach(function(el){
+    el.addEventListener('click', function(){
+      var d = postData[el.dataset.post];
+      document.getElementById('posting-panel-title').textContent = d.title;
+      document.getElementById('posting-panel').querySelector('.queue-title').textContent = d.name;
+      document.getElementById('posting-panel').querySelector('.queue-meta').textContent = d.meta;
+      document.getElementById('posting-panel').querySelectorAll('div')[3].innerHTML = '<b>Caption:</b> '+d.caption+'<br>'+d.music;
+    });
+  });
+
+  // ---- content planner: day detail panel + modal for empty day ----
+  var planModalBg = document.getElementById('plan-modal-backdrop');
+  var plannerDetail = document.getElementById('planner-detail');
+  var plannerTitle = document.getElementById('planner-detail-title');
+  var plannerData = {
+    rootcanal:{title:'24 September', name:'Root canal myths', meta:'Reel · With client', tone:'q--sky'},
+    smile:{title:'30 September', name:'Smile makeover before/after', meta:'Reel · With editor', tone:'q--lav'}
+  };
+  function renderPlannerItem(key){
+    var d = plannerData[key]; if(!d) return;
+    plannerTitle.textContent = d.title;
+    plannerDetail.querySelectorAll('.queue-item').forEach(function(n){ n.remove(); });
+    var extra = plannerDetail.querySelector('.empty'); if (extra) extra.remove();
+    var item = document.createElement('div');
+    item.className = 'queue-item ' + d.tone;
+    item.innerHTML = '<div class="queue-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="4"/><path d="m10 9 5 3-5 3V9Z"/></svg></div><div class="queue-body"><div class="queue-title">'+d.name+'</div><div class="queue-meta">'+d.meta+'</div></div>';
+    plannerDetail.appendChild(item);
+  }
+  function renderPlannerEmpty(dateLabel){
+    plannerTitle.textContent = dateLabel;
+    plannerDetail.querySelectorAll('.queue-item').forEach(function(n){ n.remove(); });
+    var extra = plannerDetail.querySelector('.empty'); if (extra) extra.remove();
+    var empty = document.createElement('div');
+    empty.className = 'empty';
+    empty.style.padding = '28px 8px';
+    empty.innerHTML = '<p>Nothing planned for '+dateLabel+'.</p><button class="btn-dark" id="planner-plan-btn">Plan</button>';
+    plannerDetail.appendChild(empty);
+    document.getElementById('planner-plan-btn').addEventListener('click', function(){ planModalBg.style.display = 'flex'; });
+  }
+  document.getElementById('planner-empty-day').addEventListener('click', function(){
+    renderPlannerEmpty(this.dataset.planEmpty);
+  });
+  document.querySelectorAll('[data-plan]').forEach(function(el){
+    el.addEventListener('click', function(){ renderPlannerItem(el.dataset.plan); });
+  });
+  document.getElementById('plan-modal-close').addEventListener('click', closePlanModal);
+  document.getElementById('plan-modal-cancel').addEventListener('click', closePlanModal);
+  document.getElementById('plan-modal-save').addEventListener('click', closePlanModal);
+  planModalBg.addEventListener('click', function(e){ if(e.target === planModalBg) closePlanModal(); });
+  function closePlanModal(){ planModalBg.style.display = 'none'; }
+})();
+</script>
+
+</body>
+</html>

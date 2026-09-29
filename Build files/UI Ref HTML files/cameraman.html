@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cameraman · Ashmeet SMMA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="theme.css">
+<style>
+body{font-size:15px}
+.screen{display:none}
+.screen.is-visible{display:block}
+.main{padding:20px 18px 96px;display:flex;flex-direction:column;min-height:100vh}
+
+.rail{display:none}
+@media (min-width:761px){
+  .rail{display:flex}
+  .main{padding:0;height:100vh;overflow:hidden}
+  .tabbar{display:none !important}
+}
+@media (max-width:760px){ .tabbar{display:flex} }
+
+.offline-banner{
+  display:none;align-items:center;gap:10px;background:var(--amber);color:var(--amber-ink);
+  padding:12px 16px;border-radius:16px;font-size:15px;font-weight:700;margin:0 0 16px;line-height:1.5;flex-shrink:0;
+}
+.offline-banner.is-visible{display:flex}
+.offline-banner svg{width:18px;height:18px;flex-shrink:0}
+@media (min-width:761px){ .offline-banner{margin:18px 28px 0} }
+
+.page-head{margin-bottom:18px;flex-shrink:0}
+.page-head h1{margin:0;font-size:24px;font-weight:800;letter-spacing:-.01em}
+.page-head p{margin:6px 0 0;font-size:15px;color:var(--ink-soft);line-height:1.5}
+@media (min-width:761px){ .page-head{padding:22px 28px 0} }
+
+/* ================= CALENDAR SCREEN LAYOUT ================= */
+#screen-shoots{flex:1;min-height:0;display:flex;flex-direction:column}
+.cal-layout{flex:1;min-height:0;display:flex}
+
+/* ---- desktop sidebar ---- */
+.cal-sidebar{display:none;flex-direction:column;width:248px;flex-shrink:0;padding:18px 18px 18px 28px;border-right:1px solid #F1F1F8;overflow-y:auto}
+@media (min-width:761px){ .cal-sidebar{display:flex} }
+
+.today-pill{
+  align-self:flex-start;height:36px;padding:0 16px;border-radius:999px;background:var(--tint);
+  font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:18px;
+}
+.today-pill:hover{background:#E7E4F8}
+
+.mini-cal-head{display:flex;align-items:center;gap:6px;margin-bottom:10px}
+.mini-month-label{font-size:13.5px;font-weight:800;flex:1}
+.mini-chevron{width:26px;height:26px;border-radius:9px;display:grid;place-items:center;color:var(--ink-soft)}
+.mini-chevron:hover{background:var(--tint)}
+.mini-chevron svg{width:14px;height:14px}
+
+.mini-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px 0;margin-bottom:20px}
+.mini-dow{font-size:9.5px;font-weight:700;color:var(--muted);text-align:center;padding:4px 0}
+.mini-day{
+  position:relative;height:30px;display:flex;align-items:center;justify-content:center;
+  font-size:11.5px;font-weight:600;color:var(--ink-soft);border-radius:50%;
+}
+.mini-day:hover:not(.is-blank){background:var(--tint)}
+.mini-day.is-blank{visibility:hidden}
+.mini-day.is-today{background:var(--violet);color:#fff;font-weight:800}
+.mini-day.is-selected:not(.is-today){outline:1.5px solid var(--violet);outline-offset:-1.5px}
+.mini-dot{position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--violet)}
+.mini-day.is-today .mini-dot{background:#fff}
+
+.upnext-card{background:var(--tint);border-radius:16px;padding:14px;margin-bottom:14px}
+.upnext-label{font-size:10.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px}
+.upnext-client{font-size:13.5px;font-weight:700}
+.upnext-meta{font-size:12px;color:var(--ink-soft);margin-top:3px;line-height:1.5}
+
+.pending-link{
+  display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:var(--ink-soft);
+  padding:10px 12px;border-radius:12px;
+}
+.pending-link:hover{background:var(--tint);color:var(--ink)}
+.pending-link svg{width:15px;height:15px;color:var(--amber-ink)}
+.pending-link .badge{
+  margin-left:auto;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--amber);
+  color:var(--amber-ink);font-size:10.5px;font-weight:800;display:grid;place-items:center;
+}
+
+/* ---- mobile day strip ---- */
+.day-strip-wrap{display:block;flex-shrink:0}
+@media (min-width:761px){ .day-strip-wrap{display:none} }
+.day-strip-head{display:flex;align-items:center;gap:6px;padding:0 4px 10px}
+.day-strip-title{font-size:15px;font-weight:800;flex:1}
+.day-strip-title svg{width:13px;height:13px;margin-left:5px;vertical-align:2px}
+.day-strip{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:0 4px 12px}
+.strip-day{
+  display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 0;border-radius:14px;position:relative;
+  min-height:44px;justify-content:center;
+}
+.strip-dow{font-size:10px;font-weight:700;color:var(--muted)}
+.strip-num{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;color:var(--ink)}
+.strip-day.is-today .strip-num{background:var(--violet);color:#fff}
+.strip-day.is-selected:not(.is-today) .strip-num{outline:1.5px solid var(--violet);outline-offset:-1.5px}
+.strip-dot{width:4px;height:4px;border-radius:50%;background:var(--violet);position:absolute;bottom:3px}
+.mobile-mini-cal{display:none;padding:0 4px 14px}
+.mobile-mini-cal.is-open{display:block}
+
+/* ================= GRID AREA ================= */
+.grid-area{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}
+@media (min-width:761px){ .grid-area{padding:22px 28px 22px 22px} }
+
+.grid-header{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;flex-shrink:0}
+.gh-chevron{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;color:var(--ink-soft);background:var(--tint)}
+.gh-chevron:hover{background:#E7E4F8}
+.gh-chevron svg{width:15px;height:15px}
+.gh-today{height:34px;padding:0 14px;border-radius:11px;background:var(--tint);font-size:12.5px;font-weight:700}
+.gh-today:hover{background:#E7E4F8}
+.grid-title{font-size:16px;font-weight:800;margin-left:6px;flex:1;min-width:120px}
+.view-toggle{flex-shrink:0}
+
+.day-columns-head{display:flex;flex-shrink:0}
+.dch-gutter{width:52px;flex-shrink:0}
+.dch-day{
+  flex:1;min-width:0;text-align:center;padding:6px 2px 10px;border-left:1px solid #F1F1F8;
+}
+.dch-dow{font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+.dch-num{
+  width:30px;height:30px;border-radius:50%;display:grid;place-items:center;margin:4px auto 0;
+  font-size:14px;font-weight:700;color:var(--ink);
+}
+.dch-day.is-today .dch-num{background:var(--violet);color:#fff}
+
+.grid-scroll{flex:1;min-height:0;overflow-y:auto;position:relative;border-top:1px solid #F1F1F8}
+.grid-body{display:flex;position:relative}
+.hour-gutter{width:52px;flex-shrink:0}
+.hour-label{
+  height:52px;font-size:10.5px;font-weight:700;color:var(--muted);text-align:right;
+  padding-right:8px;transform:translateY(-6px);
+}
+.day-columns{flex:1;display:flex;position:relative}
+.day-col{flex:1;min-width:0;position:relative;border-left:1px solid #F1F1F8}
+.hour-row{height:52px;border-bottom:1px solid #F6F6FC}
+
+.evt{
+  position:absolute;left:3px;right:3px;border-radius:10px;padding:6px 9px;overflow:hidden;
+  background:var(--violet-soft);border-left:3px solid var(--violet);cursor:pointer;text-align:left;
+}
+.evt:hover{filter:brightness(.97)}
+.evt-time{font-size:10.5px;font-weight:700;color:var(--violet-deep);white-space:nowrap}
+.evt-client{font-size:12px;font-weight:800;color:var(--ink);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.evt-meta{font-size:10.5px;color:var(--violet-deep);margin-top:2px;white-space:nowrap}
+.evt.is-completed{background:#E7F3EC;border-left-color:#4CA37E}
+.evt.is-completed .evt-time,.evt.is-completed .evt-meta{color:#2E8562}
+.evt.is-raw-missing{background:var(--amber);border-left-color:#E8901A}
+.evt.is-raw-missing .evt-time,.evt.is-raw-missing .evt-meta{color:var(--amber-ink)}
+
+.now-line{position:absolute;left:0;right:0;height:0;pointer-events:none;z-index:3}
+.now-line::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:var(--pink-ink)}
+.now-line::after{content:"";position:absolute;left:-4px;top:-4px;width:10px;height:10px;border-radius:50%;background:var(--pink-ink)}
+
+.grid-empty{flex:1;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px 20px}
+.grid-empty.is-visible{display:flex}
+.grid-empty p{margin:0 0 6px;font-size:15px;font-weight:700}
+.grid-empty-next{font-weight:500 !important;color:var(--ink-soft);font-size:15px !important;margin-bottom:16px !important}
+
+/* ================= SHOOT DETAIL PANEL ================= */
+.back-link{display:inline-flex;align-items:center;gap:6px;font-size:15px;font-weight:700;color:var(--ink-soft);margin-bottom:16px;padding:8px 0}
+.back-link svg{width:16px;height:16px}
+.detail-hero h2{margin:0 0 6px;font-size:19px;font-weight:800}
+.detail-meta-row{display:flex;align-items:center;gap:8px;font-size:15px;color:var(--ink-soft);flex-wrap:wrap}
+.detail-meta-row svg{width:14px;height:14px;flex-shrink:0}
+.detail-state{display:inline-block;font-size:11px;font-weight:800;padding:4px 10px;border-radius:999px;margin-top:10px}
+.detail-state.st--upcoming{background:var(--violet-soft);color:var(--violet-deep)}
+.detail-state.st--completed{background:#E7F3EC;color:#2E8562}
+.detail-state.st--raw-missing{background:var(--amber);color:var(--amber-ink)}
+
+.idea-block{background:var(--tint);border-radius:18px;padding:18px;margin-top:16px}
+.idea-name{font-size:15.5px;font-weight:800;margin-bottom:10px}
+.idea-field{margin-bottom:10px}
+.idea-field b{display:block;font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:3px}
+.idea-field p{margin:0;font-size:15px;line-height:1.6}
+.ref-btn{display:inline-flex;align-items:center;gap:7px;font-size:15px;font-weight:700;color:var(--violet-deep);background:var(--violet-soft);padding:9px 14px;border-radius:999px;margin-bottom:12px}
+.ref-btn svg{width:14px;height:14px}
+.upload-btn{
+  display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:50px;border-radius:15px;
+  background:linear-gradient(135deg,#31315F 0%,#1B1B3A 100%);color:#fff;font-size:15.5px;font-weight:800;
+  box-shadow:0 8px 20px rgba(27,27,58,.22);margin-bottom:10px;
+}
+.upload-btn svg{width:18px;height:18px}
+.mark-row{display:flex;align-items:center;justify-content:space-between;padding:10px 4px 2px}
+.mark-label{font-size:15px;font-weight:700}
+.switch{position:relative;width:46px;height:27px;border-radius:999px;background:#EEEEF7;flex-shrink:0}
+.switch::after{content:"";position:absolute;top:3px;left:3px;width:21px;height:21px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(27,27,58,.3);transition:transform .15s}
+.switch.is-on{background:linear-gradient(135deg,#8A7BF5,#6C5CE7)}
+.switch.is-on::after{transform:translateX(19px)}
+
+/* slide-out on desktop (reuses .drawer/.drawer-backdrop from theme.css) */
+#shoot-drawer .modal-head{position:sticky;top:0;background:var(--surface);z-index:2}
+
+/* bottom sheet on mobile */
+@media (max-width:760px){
+  .drawer{
+    top:auto;left:0;right:0;bottom:0;width:100%;height:88vh;
+    border-radius:24px 24px 0 0;box-shadow:0 -10px 40px rgba(27,27,58,.22);
+  }
+  .drawer-backdrop{background:rgba(27,27,58,.45)}
+  .drawer::before{
+    content:"";position:sticky;display:block;width:40px;height:4px;border-radius:999px;
+    background:#E4E3F2;margin:10px auto 0;
+  }
+}
+
+/* pending uploads */
+.pending-card{
+  display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:var(--amber);
+  border-radius:20px;padding:16px 18px;margin-bottom:14px;color:var(--amber-ink);
+}
+.pending-icon{width:44px;height:44px;border-radius:14px;background:rgba(255,255,255,.55);display:grid;place-items:center;flex-shrink:0}
+.pending-icon svg{width:20px;height:20px}
+.pending-body{flex:1;min-width:0}
+.pending-title{font-size:15px;font-weight:800}
+.pending-meta{font-size:15px;margin-top:3px;opacity:.85}
+.chev{width:20px;height:20px;color:var(--muted);flex-shrink:0}
+#screen-pending{padding:22px 18px}
+@media (min-width:761px){ #screen-pending{padding:28px} }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- desktop/tablet rail -->
+  <aside class="rail">
+   <div class="rail-inner">
+    <div class="rail-logo">HS</div>
+    <button class="rail-btn is-active" data-screen="shoots" aria-current="page" aria-label="Calendar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="4"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      <span class="tip">Calendar</span>
+    </button>
+    <button class="rail-btn" data-screen="pending" aria-label="Pending uploads">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+      <span class="rail-badge">1</span>
+      <span class="tip">Pending uploads</span>
+    </button>
+   </div>
+  </aside>
+
+  <div class="main">
+
+    <div class="offline-banner" id="offline-banner">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1l22 22M16.7 16.7A8 8 0 0 0 5 18.3M8.5 12.5a5 5 0 0 1 4-1.9M2 8.8A11 11 0 0 1 5.6 6.4M22 8.8a11 11 0 0 0-3.2-2.6"/><path d="M12 20h.01"/></svg>
+      You're offline — your schedule is saved and will sync when you reconnect.
+    </div>
+
+    <!-- ================= CALENDAR (My shoots) ================= -->
+    <section class="screen is-visible" id="screen-shoots">
+      <div class="cal-layout">
+
+        <!-- desktop sidebar -->
+        <aside class="cal-sidebar">
+          <button class="today-pill" id="sidebar-today">Today</button>
+          <div class="mini-cal-head">
+            <button class="mini-chevron" data-mini-nav="-1" aria-label="Previous month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+            <span class="mini-month-label">September 2026</span>
+            <button class="mini-chevron" data-mini-nav="1" aria-label="Next month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+          </div>
+          <div class="mini-cal-grid" data-mini-target="desktop"></div>
+
+          <div class="upnext-card">
+            <div class="upnext-label">Up next</div>
+            <div class="upnext-client" id="upnext-client">Sandhu Interiors</div>
+            <div class="upnext-meta" id="upnext-meta">Thursday · 4:00 PM · 2 ideas</div>
+          </div>
+
+          <a href="#" class="pending-link" data-screen="pending">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4.5M12 17.2h.01"/></svg>
+            Pending uploads
+            <span class="badge">1</span>
+          </a>
+        </aside>
+
+        <div class="grid-area">
+
+          <!-- mobile day strip -->
+          <div class="day-strip-wrap">
+            <div class="day-strip-head">
+              <button class="today-pill" id="strip-today" style="margin:0">Today</button>
+              <button class="day-strip-title" id="strip-title" aria-expanded="false">September 2026<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+            </div>
+            <div class="day-strip" id="day-strip"></div>
+            <div class="mobile-mini-cal" id="mobile-mini-cal">
+              <div class="mini-cal-head">
+                <button class="mini-chevron" data-mini-nav="-1" aria-label="Previous month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+                <span class="mini-month-label">September 2026</span>
+                <button class="mini-chevron" data-mini-nav="1" aria-label="Next month"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+              </div>
+              <div class="mini-cal-grid" data-mini-target="mobile"></div>
+            </div>
+          </div>
+
+          <!-- header -->
+          <div class="grid-header">
+            <button class="gh-chevron" id="gh-prev" aria-label="Previous"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+            <button class="gh-chevron" id="gh-next" aria-label="Next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
+            <button class="gh-today" id="gh-today">Today</button>
+            <div class="grid-title" id="grid-title">21 – 27 September 2026</div>
+            <div class="seg view-toggle" role="group" aria-label="View">
+              <button class="is-active" data-view="week">Week</button>
+              <button data-view="day">Day</button>
+            </div>
+          </div>
+
+          <div class="day-columns-head" id="day-columns-head"></div>
+
+          <div class="grid-scroll" id="grid-scroll">
+            <div class="grid-body" id="grid-body">
+              <div class="hour-gutter" id="hour-gutter"></div>
+              <div class="day-columns" id="day-columns"></div>
+            </div>
+          </div>
+
+          <div class="grid-empty" id="grid-empty">
+            <p>No shoots today</p>
+            <p class="grid-empty-next" id="grid-empty-next">Next: tomorrow, 4:00 PM — Sandhu Interiors</p>
+            <button class="btn-dark" id="grid-empty-jump">Jump to shoot</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= PENDING UPLOADS ================= -->
+    <section class="screen" id="screen-pending">
+      <div class="page-head">
+        <h1>Pending uploads</h1>
+        <p>These shoots happened but no raw footage has been detected in Drive yet.</p>
+      </div>
+
+      <button class="pending-card" data-jump-shoot="basil-founder">
+        <div class="pending-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4.5M12 17.2h.01"/></svg></div>
+        <div class="pending-body">
+          <div class="pending-title">Founder day shoot</div>
+          <div class="pending-meta">Basil Café · shot 20 Sep · no raw detected</div>
+        </div>
+        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+    </section>
+
+  </div>
+</div>
+
+<!-- mobile bottom tab bar -->
+<nav class="tabbar" aria-label="Primary">
+  <button class="tabbar-btn is-active" data-screen="shoots" aria-current="page" aria-label="Calendar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="4"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+    <span>Calendar</span>
+  </button>
+  <button class="tabbar-btn" data-screen="pending" aria-label="Pending uploads">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+    <span>Pending</span>
+  </button>
+</nav>
+
+<!-- shoot detail slide-out / bottom sheet -->
+<div class="drawer-backdrop" id="shoot-drawer-backdrop" style="display:none"></div>
+<aside class="drawer" id="shoot-drawer" style="display:none" aria-label="Shoot detail" role="dialog" aria-modal="true" tabindex="-1">
+  <div class="modal-head">
+    <div class="modal-title" id="shoot-drawer-title">Sandhu Interiors</div>
+    <button class="modal-close" id="shoot-drawer-close" aria-label="Close shoot detail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+  </div>
+  <div class="modal-body" id="shoot-drawer-body"></div>
+</aside>
+
+<script>
+(function(){
+  var TODAY = new Date(2026,8,23); // fixed "today" for this prototype: Wed 23 Sep 2026
+  var NOW_HOUR = 16 + 20/60; // 4:20 PM
+  var ROWH = 52, START_HOUR = 6, END_HOUR = 21;
+
+  function d(y,m,day){ return new Date(y,m,day); }
+  function clone(dt){ return new Date(dt.getTime()); }
+  function sameDay(a,b){ return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
+  function addDays(dt,n){ var c=clone(dt); c.setDate(c.getDate()+n); return c; }
+  function mondayOf(dt){ var day=(dt.getDay()+6)%7; return addDays(dt,-day); } // Monday-start week
+  function keyOf(dt){ return dt.getFullYear()+'-'+(dt.getMonth()+1)+'-'+dt.getDate(); }
+  var DOW = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  var MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  function fmtTime(hDec){
+    var h = Math.floor(hDec), m = Math.round((hDec-h)*60);
+    var ap = h>=12 ? 'PM' : 'AM'; var h12 = h%12; if(h12===0) h12=12;
+    return h12 + (m ? ':'+(m<10?'0':'')+m : ':00') + ' ' + ap;
+  }
+
+  // ---------------- shoot data ----------------
+  var shoots = [
+    { id:'basil-founder', date:d(2026,8,20), start:9, end:10.5, client:'Basil Café', name:'Founder day shoot',
+      location:'Sarabha Nagar, Ludhiana', state:'raw-missing',
+      ideas:[
+        {name:'Founder day interview', concept:'Sit-down with the founder about why the café started.', script:'Ask: what made you open Basil Café? What\'s one dish you\'re proudest of?'},
+        {name:'Kitchen morning routine', concept:'Early prep footage before opening — chopping, plating, coffee setup.', script:'Handheld, fly-on-the-wall style. No posed shots.'}
+      ]},
+    { id:'ramana-broll', date:d(2026,8,22), start:15, end:17, client:'Ramana Dental', name:'Clinic b-roll',
+      location:'Model Town, Ludhiana', state:'completed',
+      ideas:[
+        {name:'Clinic front desk b-roll', concept:'Clean establishing shots of reception and waiting area.', script:'Wide shot on arrival, slow pan across the seating, close-up on the welcome sign.'},
+        {name:'Equipment sterilization walkthrough', concept:'Footage of the sterilization process for a trust-building post.', script:'Macro shots of tools going through the autoclave, no patients in frame.'}
+      ]},
+    { id:'sandhu-site', date:d(2026,8,24), start:16, end:18, client:'Sandhu Interiors', name:'Site visit',
+      location:'Sarabha Nagar, Ludhiana', state:'upcoming',
+      ideas:[
+        {name:'Modular kitchen reveal', concept:'Slow walkthrough of the finished modular kitchen, morning light through the window.', script:'Start wide on the full kitchen, then push in on the storage features and countertop finish.'},
+        {name:'Client testimonial — Mrs. Bedi', concept:'Seated interview with Mrs. Bedi about her renovation experience.', script:'Ask: what made you choose Sandhu Interiors? What surprised you most about the finished space?'}
+      ]},
+    { id:'ramana-smile', date:d(2026,8,25), start:9, end:10.5, client:'Ramana Dental', name:'Smile makeover shoot',
+      location:'Model Town, Ludhiana', state:'upcoming',
+      ideas:[
+        {name:'Smile makeover before/after', concept:'Before/after footage of a recent smile makeover patient.', script:'Symmetrical close-up shots of the smile, matched framing before and after.'},
+        {name:'Root canal myths', concept:'Talking-head setup for a myths-vs-facts explainer.', script:'Frame the doctor centre, clean background, room for lower-third captions.'},
+        {name:'New patient walk-in day', concept:'Footage of the new patient welcome process.', script:'Capture the check-in desk, a warm greeting, and the consult room handoff.'}
+      ]},
+    { id:'basil-menu', date:d(2026,8,26), start:8, end:9.5, client:'Basil Café', name:'New season menu',
+      location:'Sarabha Nagar, Ludhiana', state:'upcoming',
+      ideas:[
+        {name:'New season menu', concept:'Overhead shots of the five new dishes as they get plated fresh.', script:'Get close-up texture shots — steam, garnish, the pour. No talking, just visuals.'},
+        {name:'Barista\'s pick', concept:'Barista making their favourite drink from the new menu.', script:'Ask the barista to talk through what makes this drink their pick while making it.'}
+      ]}
+  ];
+  var shootsByKey = {};
+  shoots.forEach(function(s){ shootsByKey[keyOf(s.date)] = (shootsByKey[keyOf(s.date)]||[]).concat(s); });
+  function shootsOn(dt){ return shootsByKey[keyOf(dt)] || []; }
+  function stateLabel(state){ return state==='completed' ? 'Completed' : state==='raw-missing' ? 'Raw missing' : 'Upcoming'; }
+
+  // ---------------- state ----------------
+  var selectedDate = clone(TODAY);
+  var miniMonth = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1);
+  var viewMode = 'week';
+  var lastFocusedEl = null;
+
+  // ---------------- mini calendar ----------------
+  function renderMiniCal(){
+    document.querySelectorAll('.mini-month-label').forEach(function(el){ el.textContent = MONTHS[miniMonth.getMonth()] + ' ' + miniMonth.getFullYear(); });
+    document.querySelectorAll('.mini-cal-grid').forEach(function(grid){
+      grid.innerHTML = '';
+      DOW.forEach(function(w){ var el=document.createElement('div'); el.className='mini-dow'; el.textContent=w[0]; grid.appendChild(el); });
+      var first = new Date(miniMonth.getFullYear(), miniMonth.getMonth(), 1);
+      var leading = (first.getDay()+6)%7;
+      var daysInMonth = new Date(miniMonth.getFullYear(), miniMonth.getMonth()+1, 0).getDate();
+      for(var i=0;i<leading;i++){ var b=document.createElement('div'); b.className='mini-day is-blank'; grid.appendChild(b); }
+      for(var day=1; day<=daysInMonth; day++){
+        var dt = new Date(miniMonth.getFullYear(), miniMonth.getMonth(), day);
+        var cell = document.createElement('button');
+        cell.type='button';
+        cell.className = 'mini-day';
+        if (sameDay(dt,TODAY)) cell.classList.add('is-today');
+        if (sameDay(dt,selectedDate) && !sameDay(dt,TODAY)) cell.classList.add('is-selected');
+        cell.textContent = day;
+        if (shootsOn(dt).length){ var dot=document.createElement('span'); dot.className='mini-dot'; cell.appendChild(dot); }
+        cell.setAttribute('aria-label', MONTHS[dt.getMonth()]+' '+day+', '+dt.getFullYear()+(shootsOn(dt).length?' — has a shoot':''));
+        (function(dt){ cell.addEventListener('click', function(){ selectedDate = dt; miniMonth = new Date(dt.getFullYear(),dt.getMonth(),1); renderAll(); }); })(dt);
+        grid.appendChild(cell);
+      }
+    });
+  }
+  document.querySelectorAll('[data-mini-nav]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      miniMonth = new Date(miniMonth.getFullYear(), miniMonth.getMonth()+parseInt(btn.dataset.miniNav,10), 1);
+      renderMiniCal();
+    });
+  });
+
+  // ---------------- mobile day strip ----------------
+  function renderDayStrip(){
+    var titleEl = document.getElementById('strip-title');
+    titleEl.firstChild.nodeValue = MONTHS[selectedDate.getMonth()] + ' ' + selectedDate.getFullYear();
+    var wrap = document.getElementById('day-strip');
+    wrap.innerHTML = '';
+    var weekStart = mondayOf(selectedDate);
+    for(var i=0;i<7;i++){
+      var dt = addDays(weekStart,i);
+      var cell = document.createElement('button');
+      cell.type='button'; cell.className='strip-day';
+      if (sameDay(dt,TODAY)) cell.classList.add('is-today');
+      if (sameDay(dt,selectedDate) && !sameDay(dt,TODAY)) cell.classList.add('is-selected');
+      cell.innerHTML = '<span class="strip-dow">'+DOW[i][0]+'</span><span class="strip-num">'+dt.getDate()+'</span>';
+      if (shootsOn(dt).length){ var dot=document.createElement('span'); dot.className='strip-dot'; cell.appendChild(dot); }
+      (function(dt){ cell.addEventListener('click', function(){ selectedDate = dt; miniMonth=new Date(dt.getFullYear(),dt.getMonth(),1); renderAll(); }); })(dt);
+      wrap.appendChild(cell);
+    }
+  }
+
+  // ---------------- header title ----------------
+  function updateGridTitle(){
+    var titleEl = document.getElementById('grid-title');
+    if (viewMode === 'day'){
+      titleEl.textContent = MONTHS[selectedDate.getMonth()] + ' ' + selectedDate.getDate() + ', ' + selectedDate.getFullYear();
+    } else {
+      var start = mondayOf(selectedDate), end = addDays(start,6);
+      if (start.getMonth() === end.getMonth()){
+        titleEl.textContent = start.getDate() + ' – ' + end.getDate() + ' ' + MONTHS[start.getMonth()] + ' ' + start.getFullYear();
+      } else if (start.getFullYear() === end.getFullYear()){
+        titleEl.textContent = start.getDate() + ' ' + MONTHS[start.getMonth()] + ' – ' + end.getDate() + ' ' + MONTHS[end.getMonth()] + ' ' + start.getFullYear();
+      } else {
+        titleEl.textContent = start.getDate() + ' ' + MONTHS[start.getMonth()] + ' ' + start.getFullYear() + ' – ' + end.getDate() + ' ' + MONTHS[end.getMonth()] + ' ' + end.getFullYear();
+      }
+    }
+  }
+
+  // ---------------- hour gutter ----------------
+  function renderHourGutter(){
+    var gutter = document.getElementById('hour-gutter');
+    gutter.innerHTML = '';
+    for(var h=START_HOUR; h<=END_HOUR; h++){
+      var lab = document.createElement('div');
+      lab.className = 'hour-label';
+      var ap = h>=12?'PM':'AM'; var h12=h%12; if(h12===0)h12=12;
+      lab.textContent = h12+' '+ap;
+      gutter.appendChild(lab);
+    }
+    gutter.style.height = ((END_HOUR-START_HOUR)*ROWH)+'px';
+  }
+
+  // ---------------- day columns + events ----------------
+  function buildDayColumn(dt, colEl){
+    colEl.innerHTML = '';
+    colEl.style.height = ((END_HOUR-START_HOUR)*ROWH)+'px';
+    for(var h=START_HOUR; h<END_HOUR; h++){ var row=document.createElement('div'); row.className='hour-row'; colEl.appendChild(row); }
+
+    shootsOn(dt).forEach(function(s){
+      var top = (s.start-START_HOUR)*ROWH + 2;
+      var height = (s.end-s.start)*ROWH - 4;
+      var evt = document.createElement('button');
+      evt.type = 'button';
+      evt.className = 'evt' + (s.state==='completed' ? ' is-completed' : s.state==='raw-missing' ? ' is-raw-missing' : '');
+      evt.style.top = top+'px'; evt.style.height = Math.max(height,30)+'px';
+      evt.innerHTML =
+        '<div class="evt-time">'+fmtTime(s.start)+'–'+fmtTime(s.end)+'</div>'+
+        '<div class="evt-client">'+s.client+'</div>'+
+        '<div class="evt-meta">'+s.ideas.length+' idea'+(s.ideas.length===1?'':'s')+' · '+stateLabel(s.state)+'</div>';
+      evt.setAttribute('aria-label', s.client+', '+s.name+', '+fmtTime(s.start)+' to '+fmtTime(s.end)+', '+stateLabel(s.state));
+      evt.addEventListener('click', function(id){ return function(ev){ openShootDetail(id, ev.currentTarget); }; }(s.id));
+      colEl.appendChild(evt);
+    });
+
+    if (sameDay(dt,TODAY)){
+      var line = document.createElement('div');
+      line.className = 'now-line';
+      line.style.top = ((NOW_HOUR-START_HOUR)*ROWH)+'px';
+      colEl.appendChild(line);
+    }
+  }
+
+  function renderGrid(){
+    var headEl = document.getElementById('day-columns-head');
+    var colsEl = document.getElementById('day-columns');
+    headEl.innerHTML = ''; colsEl.innerHTML = '';
+
+    var days = viewMode === 'day' ? [selectedDate] : (function(){
+      var start = mondayOf(selectedDate), arr=[];
+      for(var i=0;i<7;i++) arr.push(addDays(start,i));
+      return arr;
+    })();
+
+    var gutterSpacer = document.createElement('div');
+    gutterSpacer.className = 'dch-gutter';
+    headEl.appendChild(gutterSpacer);
+
+    days.forEach(function(dt){
+      var head = document.createElement('div');
+      head.className = 'dch-day' + (sameDay(dt,TODAY) ? ' is-today' : '');
+      head.innerHTML = '<div class="dch-dow">'+DOW[(dt.getDay()+6)%7]+'</div><div class="dch-num">'+dt.getDate()+'</div>';
+      headEl.appendChild(head);
+
+      var col = document.createElement('div');
+      col.className = 'day-col';
+      buildDayColumn(dt, col);
+      colsEl.appendChild(col);
+    });
+
+    // empty state only applies in Day view with zero shoots
+    var isEmpty = viewMode === 'day' && shootsOn(selectedDate).length === 0;
+    document.getElementById('grid-scroll').style.display = isEmpty ? 'none' : '';
+    document.getElementById('day-columns-head').style.display = isEmpty ? 'none' : '';
+    var emptyEl = document.getElementById('grid-empty');
+    emptyEl.classList.toggle('is-visible', isEmpty);
+    if (isEmpty){
+      var next = shoots.filter(function(s){ return s.date > selectedDate; }).sort(function(a,b){ return a.date-b.date; })[0];
+      if (next){
+        var diffDays = Math.round((next.date - selectedDate) / 86400000);
+        var label = diffDays === 1 ? 'tomorrow' : (diffDays > 1 && diffDays < 7 ? ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][(next.date.getDay()+6)%7] : (MONTHS[next.date.getMonth()]+' '+next.date.getDate()));
+        document.getElementById('grid-empty-next').textContent = 'Next: '+label+', '+fmtTime(next.start)+' — '+next.client;
+        document.getElementById('grid-empty-jump').onclick = function(){ selectedDate = clone(next.date); renderAll(); };
+      } else {
+        document.getElementById('grid-empty-next').textContent = 'No more shoots scheduled.';
+        document.getElementById('grid-empty-jump').style.display = 'none';
+      }
+    }
+
+    // scroll grid to a sensible starting position
+    var scrollEl = document.getElementById('grid-scroll');
+    if (!isEmpty) scrollEl.scrollTop = Math.max(0, (8-START_HOUR)*ROWH - 40);
+  }
+
+  // ---------------- up next card ----------------
+  function renderUpNext(){
+    var next = shoots.filter(function(s){ return s.date > TODAY; }).sort(function(a,b){ return a.date-b.date; })[0];
+    if (!next) return;
+    document.getElementById('upnext-client').textContent = next.client;
+    var diffDays = Math.round((next.date - TODAY) / 86400000);
+    var dayLabel = diffDays === 1 ? 'Tomorrow' : ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'][(next.date.getDay()+6)%7];
+    document.getElementById('upnext-meta').textContent = dayLabel + ' · ' + fmtTime(next.start) + ' · ' + next.ideas.length + ' ideas';
+  }
+
+  function renderAll(){
+    renderMiniCal();
+    renderDayStrip();
+    updateGridTitle();
+    renderGrid();
+  }
+
+  // ---------------- header nav ----------------
+  document.getElementById('gh-prev').addEventListener('click', function(){
+    selectedDate = addDays(selectedDate, viewMode==='day' ? -1 : -7);
+    miniMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+    renderAll();
+  });
+  document.getElementById('gh-next').addEventListener('click', function(){
+    selectedDate = addDays(selectedDate, viewMode==='day' ? 1 : 7);
+    miniMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+    renderAll();
+  });
+  function goToday(){ selectedDate = clone(TODAY); miniMonth = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1); renderAll(); }
+  document.getElementById('gh-today').addEventListener('click', goToday);
+  document.getElementById('sidebar-today').addEventListener('click', goToday);
+  document.getElementById('strip-today').addEventListener('click', goToday);
+
+  document.querySelectorAll('.view-toggle button').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.view-toggle button').forEach(function(b){ b.classList.remove('is-active'); });
+      btn.classList.add('is-active');
+      viewMode = btn.dataset.view;
+      updateGridTitle(); renderGrid();
+    });
+  });
+
+  document.getElementById('strip-title').addEventListener('click', function(){
+    var panel = document.getElementById('mobile-mini-cal');
+    var open = panel.classList.toggle('is-open');
+    this.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+
+  // ---------------- shoot detail drawer ----------------
+  var drawer = document.getElementById('shoot-drawer');
+  var drawerBg = document.getElementById('shoot-drawer-backdrop');
+
+  function openShootDetail(id, triggerEl){
+    var s = shoots.filter(function(x){ return x.id===id; })[0];
+    if (!s) return;
+    lastFocusedEl = triggerEl || document.activeElement;
+
+    document.getElementById('shoot-drawer-title').textContent = s.client;
+
+    var dayLabel = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'][(s.date.getDay()+6)%7];
+    var html = '<div class="detail-hero">'+
+      '<h2>'+s.name+'</h2>'+
+      '<div class="detail-meta-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>'+dayLabel+' '+s.date.getDate()+' '+MONTHS[s.date.getMonth()]+' · '+fmtTime(s.start)+'–'+fmtTime(s.end)+'</div>'+
+      '<div class="detail-meta-row" style="margin-top:4px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.1 7-11.5A7 7 0 0 0 5 9.5C5 14.9 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.3"/></svg>'+s.location+'</div>'+
+      '<span class="detail-state st--'+s.state+'">'+stateLabel(s.state)+'</span>'+
+      '</div>';
+
+    s.ideas.forEach(function(idea){
+      html += '<div class="idea-block">'+
+        '<div class="idea-name">'+idea.name+'</div>'+
+        '<div class="idea-field"><b>Concept</b><p>'+idea.concept+'</p></div>'+
+        '<div class="idea-field"><b>Script / talking points</b><p>'+idea.script+'</p></div>'+
+        '<a href="#" class="ref-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7M10 14 21 3M19 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h6"/></svg>Reference link</a>'+
+        '<button class="upload-btn" aria-label="Upload raw footage for '+idea.name+' — deep-links to the Drive folder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>Upload raw footage</button>'+
+        '<div class="mark-row"><span class="mark-label">Mark raw uploaded</span><button class="switch'+(s.state==='completed'?' is-on':'')+'" aria-pressed="'+(s.state==='completed'?'true':'false')+'" aria-label="Mark raw uploaded for '+idea.name+'"></button></div>'+
+        '</div>';
+    });
+
+    document.getElementById('shoot-drawer-body').innerHTML = html;
+    document.getElementById('shoot-drawer-body').querySelectorAll('.switch').forEach(function(sw){
+      sw.addEventListener('click', function(){
+        var on = sw.classList.toggle('is-on');
+        sw.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+    });
+
+    drawer.style.display = 'flex'; drawer.style.flexDirection='column';
+    drawerBg.style.display = 'block';
+    document.getElementById('shoot-drawer-close').focus();
+  }
+
+  function closeDrawer(){
+    drawer.style.display = 'none';
+    drawerBg.style.display = 'none';
+    if (lastFocusedEl && document.body.contains(lastFocusedEl)) lastFocusedEl.focus();
+  }
+  document.getElementById('shoot-drawer-close').addEventListener('click', closeDrawer);
+  drawerBg.addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape' && drawer.style.display !== 'none') closeDrawer();
+  });
+
+  // ---------------- screen switching ----------------
+  function goToScreen(name){
+    document.querySelectorAll('.screen').forEach(function(s){ s.classList.toggle('is-visible', s.id === 'screen-'+name); });
+    document.querySelectorAll('.rail-btn[data-screen], .tabbar-btn[data-screen]').forEach(function(b){
+      var active = b.dataset.screen === name;
+      b.classList.toggle('is-active', active);
+      if (active) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current');
+    });
+  }
+  document.querySelectorAll('[data-screen]').forEach(function(el){
+    el.addEventListener('click', function(e){ e.preventDefault(); goToScreen(el.dataset.screen); });
+  });
+
+  document.querySelectorAll('[data-jump-shoot]').forEach(function(el){
+    el.addEventListener('click', function(){
+      var s = shoots.filter(function(x){ return x.id === el.dataset.jumpShoot; })[0];
+      if (!s) return;
+      selectedDate = clone(s.date);
+      miniMonth = new Date(s.date.getFullYear(), s.date.getMonth(), 1);
+      goToScreen('shoots');
+      renderAll();
+      setTimeout(function(){ openShootDetail(s.id, el); }, 0);
+    });
+  });
+
+  // ---------------- init ----------------
+  renderHourGutter();
+  renderUpNext();
+  renderAll();
+
+  // demo-only offline banner toggle so reviewers can see the pattern
+  setTimeout(function(){ document.getElementById('offline-banner').classList.add('is-visible'); }, 1200);
+})();
+</script>
+
+</body>
+</html>
