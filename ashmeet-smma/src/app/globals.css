@@ -1,0 +1,4 @@
+@import '../styles/theme.css';
+
+html { scroll-behavior: smooth; }
+body { overflow-x: hidden; }
