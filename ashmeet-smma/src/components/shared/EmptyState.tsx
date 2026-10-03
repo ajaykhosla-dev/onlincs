@@ -1,16 +1,10 @@
-import React from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 
-interface EmptyStateProps {
-  title: string
-  subtitle?: string
-  action?: React.ReactNode
-}
-
-export function EmptyState({ title, subtitle, action }: EmptyStateProps) {
+/** Centred "nothing here" block with an optional action. */
+export function EmptyState({ message, action, style }: { message: ReactNode; action?: ReactNode; style?: CSSProperties }) {
   return (
-    <div className="empty-state">
-      <p>{title}</p>
-      {subtitle && <p className="empty-sub">{subtitle}</p>}
+    <div className="empty" style={style}>
+      <p>{message}</p>
       {action}
     </div>
   )

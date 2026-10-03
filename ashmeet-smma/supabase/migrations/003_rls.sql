@@ -1,31 +1,82 @@
 -- Migration: 003_rls
--- Phase 0: Row Level Security policies on all tables
--- Uses helper functions: auth_agency_id() and user_role()
+-- Second wall behind lib/auth/can-access.ts. Identity comes from the JWT `sub`
+-- (the users.id of the caller); agency and role are looked up in `users`, never
+-- trusted from claims. Policies are additive (OR), so there are NO broad
+-- catch-all policies: every grant below is scoped to the caller's role.
 
--- ── Helper functions ─────────────────────────────────────────────────────
+-- ── Identity helpers (security definer: they read users without recursing into its RLS) ──
 
-create or replace function auth_agency_id()
-returns text
-language sql stable
-as $$
-  select nullif(current_setting('request.jwt.claims', true)::json->>'agency_id', '')
+create or replace function auth_user_id() returns text
+language sql stable as $$
+  select nullif(current_setting('request.jwt.claims', true)::json->>'sub', '')
 $$;
 
-create or replace function user_role()
-returns text
-language sql stable
-as $$
-  select nullif(current_setting('request.jwt.claims', true)::json->>'role', '')
+create or replace function auth_agency_id() returns text
+language sql stable security definer set search_path = public as $$
+  select agency_id from users where id = auth_user_id() and is_active
 $$;
 
-create or replace function is_admin()
-returns boolean
-language sql stable
-as $$
-  select user_role() in ('platform_owner', 'admin')
+create or replace function user_role() returns text
+language sql stable security definer set search_path = public as $$
+  select role from users where id = auth_user_id() and is_active
 $$;
 
--- ── Enable RLS on all tables ─────────────────────────────────────────────
+create or replace function is_platform_owner() returns boolean
+language sql stable as $$ select coalesce(user_role() = 'platform_owner', false) $$;
+
+-- admin of agency `a`, or platform owner (who crosses agencies)
+create or replace function is_agency_admin(a text) returns boolean
+language sql stable as $$
+  select is_platform_owner() or (coalesce(user_role() = 'admin', false) and a = auth_agency_id())
+$$;
+
+-- ── Relationship helpers ──────────────────────────────────────────────────
+
+create or replace function manages_client(cid text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from clients c where c.id = cid and c.manager_id = auth_user_id() and c.agency_id = auth_agency_id())
+$$;
+
+create or replace function editor_on_client(cid text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from content_items ci where ci.client_id = cid and ci.assigned_editor_id = auth_user_id() and ci.agency_id = auth_agency_id())
+$$;
+
+create or replace function cameraman_on_client(cid text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from shoots s where s.client_id = cid and s.cameraman_id = auth_user_id() and s.agency_id = auth_agency_id())
+$$;
+
+create or replace function cameraman_on_item(iid text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from shoot_items si join shoots s on s.id = si.shoot_id
+    where si.content_item_id = iid and s.cameraman_id = auth_user_id() and s.agency_id = auth_agency_id())
+$$;
+
+-- admin, the client's manager, or the assigned editor (not cameramen)
+create or replace function works_item(iid text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from content_items ci
+    where ci.id = iid and (
+      is_agency_admin(ci.agency_id)
+      or (ci.agency_id = auth_agency_id() and (manages_client(ci.client_id) or ci.assigned_editor_id = auth_user_id()))))
+$$;
+
+create or replace function works_version(vid text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from deliverable_versions dv where dv.id = vid and works_item(dv.content_item_id))
+$$;
+
+revoke all on function auth_user_id(), auth_agency_id(), user_role(), is_platform_owner(), is_agency_admin(text),
+  manages_client(text), editor_on_client(text), cameraman_on_client(text), cameraman_on_item(text),
+  works_item(text), works_version(text) from public;
+grant execute on function auth_user_id(), auth_agency_id(), user_role(), is_platform_owner(), is_agency_admin(text),
+  manages_client(text), editor_on_client(text), cameraman_on_client(text), cameraman_on_item(text),
+  works_item(text), works_version(text) to authenticated;
+
+-- ── Enable RLS everywhere ─────────────────────────────────────────────────
 
 alter table agencies              enable row level security;
 alter table agency_integrations   enable row level security;
@@ -48,285 +99,129 @@ alter table drive_sync_state      enable row level security;
 alter table push_subscriptions    enable row level security;
 alter table notifications         enable row level security;
 
--- ── Agencies ─────────────────────────────────────────────────────────────
+-- anon gets nothing. authenticated gets table privileges narrowed below; RLS does the row filtering.
+revoke all on all tables in schema public from anon;
 
-create policy "platform_owner manages agencies" on agencies
-  for all using (is_admin());
+-- Server-only tables: no policies and no privileges for any API role.
+-- (The service role bypasses RLS and keeps its own grants.)
+revoke all on agency_integrations, drive_sync_state from authenticated;
 
--- ── Users ─────────────────────────────────────────────────────────────────
+-- ── agencies ──────────────────────────────────────────────────────────────
+create policy agencies_read on agencies for select to authenticated
+  using (is_platform_owner() or id = auth_agency_id());
+create policy agencies_write on agencies for all to authenticated
+  using (is_platform_owner()) with check (is_platform_owner());
 
-create policy "users see own agency" on users
-  for select using (agency_id = auth_agency_id());
+-- ── users ─────────────────────────────────────────────────────────────────
+create policy users_read on users for select to authenticated
+  using (is_platform_owner() or agency_id = auth_agency_id());
+create policy users_admin_write on users for all to authenticated
+  using (is_agency_admin(agency_id)) with check (is_agency_admin(agency_id));
 
-create policy "admin manages users" on users
-  for insert with check (is_admin() and agency_id = auth_agency_id());
+-- ── clients ───────────────────────────────────────────────────────────────
+create policy clients_read on clients for select to authenticated using (
+  is_agency_admin(agency_id)
+  or (agency_id = auth_agency_id() and (manages_client(id) or editor_on_client(id) or cameraman_on_client(id))));
+create policy clients_admin_write on clients for all to authenticated
+  using (is_agency_admin(agency_id)) with check (is_agency_admin(agency_id));
+create policy clients_manager_update on clients for update to authenticated
+  using (manages_client(id)) with check (manages_client(id));
 
-create policy "admin updates users" on users
-  for update using (is_admin());
+-- ── client_scope ──────────────────────────────────────────────────────────
+create policy scope_read on client_scope for select to authenticated
+  using (is_agency_admin(agency_id) or manages_client(client_id));
+create policy scope_admin_write on client_scope for all to authenticated
+  using (is_agency_admin(agency_id)) with check (is_agency_admin(agency_id));
 
--- ── Clients ──────────────────────────────────────────────────────────────
+-- ── content_items ─────────────────────────────────────────────────────────
+create policy items_read on content_items for select to authenticated using (
+  works_item(id) or cameraman_on_item(id));
+create policy items_insert on content_items for insert to authenticated with check (
+  is_agency_admin(agency_id) or (agency_id = auth_agency_id() and manages_client(client_id)));
+create policy items_update on content_items for update to authenticated
+  using (works_item(id)) with check (works_item(id));
+create policy items_delete on content_items for delete to authenticated using (
+  is_agency_admin(agency_id) or (agency_id = auth_agency_id() and manages_client(client_id)));
 
-create policy "admin sees all clients" on clients
-  for select using (is_admin() and agency_id = auth_agency_id());
+-- ── monthly_plans ─────────────────────────────────────────────────────────
+create policy plans_all on monthly_plans for all to authenticated
+  using (is_agency_admin(agency_id) or manages_client(client_id))
+  with check (is_agency_admin(agency_id) or manages_client(client_id));
 
-create policy "brand_manager sees own clients" on clients
-  for select using (
-    agency_id = auth_agency_id()
-    and manager_id in (
-      select id from users where agency_id = auth_agency_id() and email = current_setting('request.jwt.claims', true)::json->>'email'
-    )
-  );
+-- ── shoots ────────────────────────────────────────────────────────────────
+create policy shoots_read on shoots for select to authenticated using (
+  is_agency_admin(agency_id) or manages_client(client_id)
+  or (agency_id = auth_agency_id() and cameraman_id = auth_user_id()));
+create policy shoots_write on shoots for all to authenticated
+  using (is_agency_admin(agency_id) or manages_client(client_id))
+  with check (is_agency_admin(agency_id) or manages_client(client_id));
+create policy shoots_cameraman_update on shoots for update to authenticated
+  using (agency_id = auth_agency_id() and cameraman_id = auth_user_id())
+  with check (agency_id = auth_agency_id() and cameraman_id = auth_user_id());
 
-create policy "read_only sees own client" on clients
-  for select using (agency_id = auth_agency_id());
+-- ── shoot_items (no agency_id column; scoped through the parent shoot's own RLS) ──
+create policy shoot_items_read on shoot_items for select to authenticated
+  using (exists (select 1 from shoots s where s.id = shoot_items.shoot_id));
+create policy shoot_items_write on shoot_items for all to authenticated
+  using (exists (select 1 from shoots s where s.id = shoot_items.shoot_id))
+  with check (exists (select 1 from shoots s where s.id = shoot_items.shoot_id));
 
--- ── Content Items ─────────────────────────────────────────────────────────
+-- ── upload_sessions: reads only, and never the session URI ────────────────
+revoke all on upload_sessions from authenticated;
+grant select (id, agency_id, shoot_id, content_item_id, file_name, file_size_bytes, mime_type,
+              bytes_received, status, expires_at, started_by, completed_at, created_at)
+  on upload_sessions to authenticated;
+create policy sessions_read on upload_sessions for select to authenticated using (
+  is_agency_admin(agency_id) or (agency_id = auth_agency_id() and started_by = auth_user_id()));
+-- Created, advanced and read (with the URI) only by the server via the service role,
+-- after canAccess() passes.
 
-create policy "admin manages content" on content_items
-  for all using (is_admin() and agency_id = auth_agency_id());
+-- ── raw_files: read-only to API roles; the server writes ──────────────────
+revoke insert, update, delete on raw_files from authenticated;
+create policy raw_read on raw_files for select to authenticated using (
+  is_agency_admin(agency_id)
+  or (agency_id = auth_agency_id() and (
+        exists (select 1 from shoots s where s.id = raw_files.shoot_id)
+        or (content_item_id is not null and works_item(content_item_id)))));
 
-create policy "brand_manager manages client content" on content_items
-  for all using (
-    agency_id = auth_agency_id()
-    and client_id in (
-      select id from clients where agency_id = auth_agency_id()
-        and manager_id in (select id from users where agency_id = auth_agency_id() and email = current_setting('request.jwt.claims', true)::json->>'email')
-    )
-  );
+-- ── deliverable_versions ──────────────────────────────────────────────────
+create policy versions_all on deliverable_versions for all to authenticated
+  using (works_item(content_item_id)) with check (works_item(content_item_id));
 
-create policy "editor reads own assignments" on content_items
-  for select using (
-    agency_id = auth_agency_id()
-    and (
-      assigned_editor_id in (
-        select id from users where agency_id = auth_agency_id() and email = current_setting('request.jwt.claims', true)::json->>'email'
-      )
-      or exists (
-        select 1 from shoot_items si
-        join shoots s on s.id = si.shoot_id
-        where si.content_item_id = content_items.id
-          and s.cameraman_id in (
-            select id from users where agency_id = auth_agency_id() and email = current_setting('request.jwt.claims', true)::json->>'email'
-          )
-      )
-    )
-  );
+-- ── comments (version_id has no FK, so the join lives in works_version) ───
+create policy comments_all on comments for all to authenticated
+  using (works_version(version_id)) with check (works_version(version_id));
 
--- ── Shoots ────────────────────────────────────────────────────────────────
+-- ── approval_links: hashes are never readable by API roles ────────────────
+revoke all on approval_links from authenticated;
+grant select (id, agency_id, content_item_id, version_id, expires_at, revoked_at, viewed_at,
+              responded_at, response, client_name, created_by, created_at)
+  on approval_links to authenticated;
+create policy links_read on approval_links for select to authenticated
+  using (works_item(content_item_id));
 
-create policy "admin manages shoots" on shoots
-  for all using (is_admin() and agency_id = auth_agency_id());
+-- ── post_schedule ─────────────────────────────────────────────────────────
+create policy schedule_all on post_schedule for all to authenticated using (
+  is_agency_admin(agency_id) or exists (
+    select 1 from content_items ci where ci.id = post_schedule.content_item_id and manages_client(ci.client_id)))
+  with check (
+  is_agency_admin(agency_id) or exists (
+    select 1 from content_items ci where ci.id = post_schedule.content_item_id and manages_client(ci.client_id)));
 
-create policy "brand_manager manages client shoots" on shoots
-  for all using (
-    agency_id = auth_agency_id()
-    and client_id in (
-      select id from clients where agency_id = auth_agency_id()
-        and manager_id in (select id from users where agency_id = auth_agency_id() and email = current_setting('request.jwt.claims', true)::json->>'email')
-    )
-  );
+-- ── library_assets ────────────────────────────────────────────────────────
+create policy library_read on library_assets for select to authenticated using (
+  is_agency_admin(agency_id) or manages_client(client_id) or editor_on_client(client_id));
+create policy library_write on library_assets for all to authenticated
+  using (is_agency_admin(agency_id) or manages_client(client_id))
+  with check (is_agency_admin(agency_id) or manages_client(client_id));
 
-create policy "cameraman sees own shoots" on shoots
-  for all using (
-    agency_id = auth_agency_id()
-    and cameraman_id in (
-      select id from users where agency_id = auth_agency_id() and email = current_setting('request.jwt.claims', true)::json->>'email'
-    )
-  );
+-- ── activity_log: admins read; the server writes ──────────────────────────
+revoke insert, update, delete on activity_log from authenticated;
+create policy activity_read on activity_log for select to authenticated
+  using (is_agency_admin(agency_id));
 
--- ── Shoot Items ───────────────────────────────────────────────────────────
-
-create policy "shoot items visible via shoot" on shoot_items
-  for all using (
-    shoot_id in (
-      select id from shoots where agency_id = auth_agency_id()
-    )
-  );
-
--- ── Upload Sessions ──────────────────────────────────────────────────────
-
-create policy "admin manages upload_sessions" on upload_sessions
-  for all using (is_admin() and agency_id = auth_agency_id());
-
-create policy "cameraman owns upload_session" on upload_sessions
-  for select using (
-    agency_id = auth_agency_id()
-    and started_by in (
-      select id from users where agency_id = auth_agency_id() and email = current_setting('request.jwt.claims', true)::json->>'email'
-    )
-  );
-
--- session_uri_enc must NEVER be readable — column-level exclusion
-create policy "no one reads session_uri_enc" on upload_sessions
-  for select using (false);
-
--- ── Raw Files ─────────────────────────────────────────────────────────────
-
-create policy "raw_files visible to shoot team" on raw_files
-  for select using (
-    agency_id = auth_agency_id()
-    and (
-      exists (select 1 from shoots s where s.id = raw_files.shoot_id and s.cameraman_id in (
-        select id from users where agency_id = auth_agency_id() and email = current_setting('request.jwt.claims', true)::json->>'email'
-      ))
-      or exists (select 1 from shoots s where s.id = raw_files.shoot_id and s.client_id in (
-        select id from clients where agency_id = auth_agency_id()
-          and manager_id in (select id from users where agency_id = auth_agency_id() and email = current_setting('request.jwt.claims', true)::json->>'email')
-      ))
-      or is_admin()
-    )
-  );
-
--- ── Deliverable Versions ──────────────────────────────────────────────────
-
-create policy "admin manages deliverables" on deliverable_versions
-  for all using (is_admin() and agency_id = auth_agency_id());
-
-create policy "brand_manager manages client deliverables" on deliverable_versions
-  for all using (
-    agency_id = auth_agency_id()
-    and content_item_id in (
-      select ci.id from content_items ci
-      join clients c on c.id = ci.client_id
-      where ci.agency_id = auth_agency_id()
-        and c.manager_id in (select id from users where agency_id = auth_agency_id() and email = current_setting('request.jwt.claims', true)::json->>'email')
-    )
-  );
-
-create policy "editor manages own deliverables" on deliverable_versions
-  for all using (
-    agency_id = auth_agency_id()
-    and uploaded_by in (
-      select id from users where agency_id = auth_agency_id() and email = current_setting('request.jwt.claims', true)::json->>'email'
-    )
-  );
-
--- ── Comments ──────────────────────────────────────────────────────────────
-
-create policy "comments visible to item team" on comments
-  for all using (
-    agency_id = auth_agency_id()
-    and (
-      version_id in (
-        select dv.id from deliverable_versions dv
-        where dv.agency_id = auth_agency_id()
-          and (
-            exists (select 1 from content_items ci where ci.id = dv.content_item_id and ci.client_id in (
-              select id from clients where agency_id = auth_agency_id()
-                and manager_id in (select id from users where agency_id = auth_agency_id() and email = current_setting('request.jwt.claims', true)::json->>'email')
-            ))
-            or exists (select 1 from deliverable_versions dv2 where dv2.id = dv.id and dv2.uploaded_by in (
-              select id from users where agency_id = auth_agency_id() and email = current_setting('request.jwt.claims', true)::json->>'email'
-            ))
-          )
-      )
-      or is_admin()
-    )
-  );
-
--- ── Approval Links ────────────────────────────────────────────────────────
-
-create policy "admin manages approval_links" on approval_links
-  for all using (is_admin() and agency_id = auth_agency_id());
-
-create policy "brand_manager manages client approvals" on approval_links
-  for all using (
-    agency_id = auth_agency_id()
-    and content_item_id in (
-      select ci.id from content_items ci
-      join clients c on c.id = ci.client_id
-      where ci.agency_id = auth_agency_id()
-        and c.manager_id in (select id from users where agency_id = auth_agency_id() and email = current_setting('request.jwt.claims', true)::json->>'email')
-    )
-  );
-
--- ── Post Schedule ─────────────────────────────────────────────────────────
-
-create policy "admin manages schedule" on post_schedule
-  for all using (is_admin() and agency_id = auth_agency_id());
-
-create policy "brand_manager manages client schedule" on post_schedule
-  for all using (
-    agency_id = auth_agency_id()
-    and content_item_id in (
-      select ci.id from content_items ci
-      join clients c on c.id = ci.client_id
-      where ci.agency_id = auth_agency_id()
-        and c.manager_id in (select id from users where agency_id = auth_agency_id() and email = current_setting('request.jwt.claims', true)::json->>'email')
-    )
-  );
-
--- ── Client Scope ──────────────────────────────────────────────────────────
-
-create policy "admin manages scope" on client_scope
-  for all using (is_admin() and agency_id = auth_agency_id());
-
-create policy "brand_manager reads own scope" on client_scope
-  for select using (
-    agency_id = auth_agency_id()
-    and client_id in (
-      select id from clients where agency_id = auth_agency_id()
-        and manager_id in (select id from users where agency_id = auth_agency_id() and email = current_setting('request.jwt.claims', true)::json->>'email')
-    )
-  );
-
--- ── Monthly Plans ─────────────────────────────────────────────────────────
-
-create policy "admin manages plans" on monthly_plans
-  for all using (is_admin() and agency_id = auth_agency_id());
-
-create policy "brand_manager manages own plans" on monthly_plans
-  for all using (
-    agency_id = auth_agency_id()
-    and client_id in (
-      select id from clients where agency_id = auth_agency_id()
-        and manager_id in (select id from users where agency_id = auth_agency_id() and email = current_setting('request.jwt.claims', true)::json->>'email')
-    )
-  );
-
--- ── Library Assets ────────────────────────────────────────────────────────
-
-create policy "admin manages library" on library_assets
-  for all using (is_admin() and agency_id = auth_agency_id());
-
-create policy "brand_manager manages client library" on library_assets
-  for all using (
-    agency_id = auth_agency_id()
-    and client_id in (
-      select id from clients where agency_id = auth_agency_id()
-        and manager_id in (select id from users where agency_id = auth_agency_id() and email = current_setting('request.jwt.claims', true)::json->>'email')
-    )
-  );
-
-create policy "editor reads client library" on library_assets
-  for select using (agency_id = auth_agency_id());
-
--- ── Activity Log ──────────────────────────────────────────────────────────
-
-create policy "activity log for agency" on activity_log
-  for all using (agency_id = auth_agency_id());
-
--- ── Drive Sync State ──────────────────────────────────────────────────────
-
-create policy "admin manages sync" on drive_sync_state
-  for all using (is_admin());
-
--- ── Push Subscriptions ────────────────────────────────────────────────────
-
-create policy "user manages own subscription" on push_subscriptions
-  for all using (
-    agency_id = auth_agency_id()
-    and user_id in (
-      select id from users where agency_id = auth_agency_id() and email = current_setting('request.jwt.claims', true)::json->>'email'
-    )
-  );
-
--- ── Notifications ─────────────────────────────────────────────────────────
-
-create policy "user sees own notifications" on notifications
-  for all using (
-    agency_id = auth_agency_id()
-    and user_id in (
-      select id from users where agency_id = auth_agency_id() and email = current_setting('request.jwt.claims', true)::json->>'email'
-    )
-  );
+-- ── push_subscriptions / notifications: own rows only ─────────────────────
+create policy push_own on push_subscriptions for all to authenticated
+  using (user_id = auth_user_id()) with check (user_id = auth_user_id() and agency_id = auth_agency_id());
+create policy notifications_own on notifications for all to authenticated
+  using (user_id = auth_user_id()) with check (user_id = auth_user_id() and agency_id = auth_agency_id());

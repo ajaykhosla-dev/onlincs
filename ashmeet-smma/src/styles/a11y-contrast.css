@@ -1,0 +1,16 @@
+/*
+ * Accessibility deviation from the approved prototypes (Phase 1, Lighthouse >= 95).
+ *
+ * Three palette tokens fail WCAG AA text contrast as designed:
+ *   --muted      #9A9AB4 on white     2.74:1  ->  #6E6E8A  4.93:1
+ *   --amber-ink  #AE6100 on #FFEBD2   4.00:1  ->  #9A5600  4.88:1
+ *   --pink-ink   #CE2F66 on #FFDCE6   3.93:1  ->  #B8245C  4.83:1
+ *
+ * This file is the only place the change lives: delete the import in globals.css to restore the original palette.
+ * Needs the client's sign-off because it slightly darkens secondary text and two tag colours.
+ */
+:root {
+  --muted: #6E6E8A;
+  --amber-ink: #9A5600;
+  --pink-ink: #B8245C;
+}

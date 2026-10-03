@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // one-off Node helper scripts use CommonJS
+    "scripts/**/*.cjs",
+    "tests/visual/**",
   ]),
 ]);
 

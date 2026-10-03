@@ -1,32 +1,34 @@
-import React from 'react'
+import type { ReactNode } from 'react'
 
-type MetricTheme = 'violet' | 'amber' | 'pink' | 'mint' | 'sky'
+export type MetricTone = 'violet' | 'amber' | 'pink' | 'mint' | 'sky'
 
-interface MetricCardProps {
+/** Gradient icon tile, optional badge pill, value, label and note. */
+export function MetricCard({
+  tone,
+  icon,
+  badge,
+  value,
+  label,
+  note,
+}: {
+  tone: MetricTone
+  icon: ReactNode
+  badge?: string
+  value: ReactNode
   label: string
-  value: string
-  delta?: string
-  icon?: React.ReactNode
-  theme?: MetricTheme
-}
-
-const themeClassMap: Record<MetricTheme, string> = {
-  violet: 'm--violet',
-  amber: 'm--amber',
-  pink: 'm--pink',
-  mint: 'm--mint',
-  sky: 'm--sky',
-}
-
-export function MetricCard({ label, value, delta, icon, theme = 'violet' }: MetricCardProps) {
+  note: string
+}) {
   return (
-    <div className={`metric ${themeClassMap[theme]}`}>
+    <div className={`metric m--${tone}`}>
       <div className="metric-top">
         <div className="metric-icon">{icon}</div>
-        {delta && <span className="metric-delta">{delta}</span>}
+        {badge && <span className="metric-delta">{badge}</span>}
       </div>
-      <div className="metric-value">{value}</div>
-      <div className="metric-label">{label}</div>
+      <div>
+        <div className="metric-value">{value}</div>
+        <div className="metric-label">{label}</div>
+        <div className="metric-note">{note}</div>
+      </div>
     </div>
   )
 }

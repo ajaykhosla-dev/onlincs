@@ -1,43 +1,43 @@
-import React from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 
-interface ColumnDef {
-  key: string
-  label: string
+export type Column<T> = {
+  header: ReactNode
+  cell: (row: T) => ReactNode
+  /** style applied to the cell itself */ tdStyle?: CSSProperties | ((row: T) => CSSProperties)
 }
 
-interface DataTableProps {
-  columns: ColumnDef[]
-  data: Record<string, unknown>[]
-  renderCell?: (key: string, row: Record<string, unknown>) => React.ReactNode
-  footerSlot?: React.ReactNode
-}
-
-export function DataTable({ columns, data, renderCell, footerSlot }: DataTableProps) {
+/** Borderless table with rounded row hover (the spacing and hover live in theme.css). Takes column definitions and rows. */
+export function DataTable<T>({
+  columns,
+  rows,
+  rowKey,
+}: {
+  columns: Column<T>[]
+  rows: T[]
+  rowKey: (row: T) => string
+}) {
   return (
-    <div className="card">
-      <div className="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              {columns.map(c => (
-                <th key={c.key}>{c.label}</th>
+    <div className="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            {columns.map((c, i) => (
+              <th key={i}>{c.header}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={rowKey(r)}>
+              {columns.map((c, i) => (
+                <td key={i} style={typeof c.tdStyle === 'function' ? c.tdStyle(r) : c.tdStyle}>
+                  {c.cell(r)}
+                </td>
               ))}
             </tr>
-          </thead>
-          <tbody>
-            {data.map((row, i) => (
-              <tr key={i}>
-                {columns.map(c => (
-                  <td key={c.key}>
-                    {renderCell ? renderCell(c.key, row) : String(row[c.key] ?? '')}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {footerSlot && <div className="table-foot">{footerSlot}</div>}
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }

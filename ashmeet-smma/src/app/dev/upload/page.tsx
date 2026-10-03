@@ -1,154 +1,104 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState } from 'react'
+
+// Deliberately crude Phase 0 harness for the upload wrapper. Chunks go straight from the browser to
+// Google's session URI with NO Authorization header; only the three /api/upload calls touch our server.
+const CHUNK = 8 * 1024 * 1024 // must be a multiple of 256 KiB
 
 export default function UploadTestPage() {
   const [file, setFile] = useState<File | null>(null)
-  const [progress, setProgress] = useState(0)
-  const [status, setStatus] = useState('Pick a file to test the upload wrapper')
+  const [shootId, setShootId] = useState('sh-1')
+  const [contentItemId, setContentItemId] = useState('ci-1')
+  const [pct, setPct] = useState(0)
   const [logs, setLogs] = useState<string[]>([])
+  const [busy, setBusy] = useState(false)
+  const log = (m: string) => setLogs((l) => [...l, `${new Date().toLocaleTimeString()}  ${m}`])
 
-  const addLog = (msg: string) => setLogs(prev => [...prev, `${new Date().toLocaleTimeString()}: ${msg}`])
-
-  const handlePick = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0]
-    if (f) {
-      setFile(f)
-      setStatus(`Selected: ${f.name} (${(f.size / 1024 / 1024).toFixed(1)} MB)`)
-      setProgress(0)
-    }
+  async function api<T>(url: string, init?: RequestInit): Promise<{ ok: boolean; status: number; data: T & { error?: string; recoverable?: boolean } }> {
+    const res = await fetch(url, init)
+    return { ok: res.ok, status: res.status, data: await res.json().catch(() => ({})) }
   }
 
-  const handleUpload = async () => {
-    if (!file) return
-    setStatus('Starting upload...')
-    setProgress(0)
-    setLogs([])
+  async function startFresh(f: File) {
+    const r = await api<{ sessionId: string; sessionUri: string }>('/api/upload/session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ shootId, contentItemId, fileName: f.name, fileSizeBytes: f.size, mimeType: f.type || 'application/octet-stream' }),
+    })
+    if (!r.ok) throw new Error(`session create failed: ${r.status} ${r.data.error}`)
+    log(`new session ${r.data.sessionId}`)
+    return { sessionId: r.data.sessionId, sessionUri: r.data.sessionUri, held: 0 }
+  }
 
-    try {
-      // Step 1: Create session
-      addLog('Requesting upload session from server...')
-      const sessionRes = await fetch('/api/upload/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileName: file.name, fileSizeBytes: file.size, mimeType: file.type }),
-      })
-
-      if (!sessionRes.ok) {
-        const err = await sessionRes.text()
-        addLog(`Session creation failed: ${sessionRes.status} ${err}`)
-        setStatus('Session creation failed')
-        return
+  async function resumeOrStart(f: File) {
+    const found = await api<{ sessionId: string | null }>(
+      `/api/upload/session?shootId=${encodeURIComponent(shootId)}&contentItemId=${encodeURIComponent(contentItemId)}&fileName=${encodeURIComponent(f.name)}&fileSizeBytes=${f.size}`
+    )
+    const saved = found.ok ? found.data.sessionId : null
+    if (saved) {
+      const p = await api<{ sessionUri: string; bytesReceived: number }>(`/api/upload/progress?sessionId=${saved}`)
+      if (p.ok) {
+        log(`resuming ${saved}: Google holds ${p.data.bytesReceived} bytes`)
+        return { sessionId: saved, sessionUri: p.data.sessionUri, held: p.data.bytesReceived }
       }
+      if (p.data.recoverable) log('session expired — starting a fresh one')
+      else throw new Error(`progress failed: ${p.status} ${p.data.error}`)
+    }
+    return startFresh(f)
+  }
 
-      const { sessionUri, sessionId } = await sessionRes.json()
-      addLog(`Session created: ${sessionId}`)
-      addLog(`Session URI received (first 50 chars): ${sessionUri.slice(0, 50)}...`)
-
-      // Step 2: Upload chunks directly to Drive (bypassing server)
-      const chunkSize = 256 * 1024 // 256KB chunks for testing
-      let uploaded = 0
-
-      while (uploaded < file.size) {
-        const end = Math.min(uploaded + chunkSize, file.size)
-        const chunk = file.slice(uploaded, end)
-
+  async function upload() {
+    if (!file || busy) return // a double-click would otherwise open several Drive sessions for one file
+    setBusy(true)
+    setLogs([])
+    try {
+      const { sessionId, sessionUri, held } = await resumeOrStart(file)
+      let offset = held
+      while (offset < file.size) {
+        const end = Math.min(offset + CHUNK, file.size)
         const res = await fetch(sessionUri, {
           method: 'PUT',
-          headers: {
-            'Content-Length': String(end - uploaded),
-            'Content-Range': `bytes ${uploaded}-${end - 1}/${file.size}`,
-          },
-          body: chunk,
+          headers: { 'Content-Range': `bytes ${offset}-${end - 1}/${file.size}` },
+          body: file.slice(offset, end),
         })
-
         if (res.status === 308) {
-          // Resume — check progress
-          const range = res.headers.get('Range')
-          if (range) {
-            const match = range.match(/bytes=0-(\d+)/)
-            if (match) uploaded = parseInt(match[1]) + 1
-          }
+          const m = res.headers.get('Range')?.match(/bytes=0-(\d+)/)
+          offset = m ? Number(m[1]) + 1 : 0
         } else if (res.status === 200 || res.status === 201) {
-          // Complete
-          const result = await res.json()
-          addLog(`Upload complete! Drive file ID: ${result.id}`)
-          setStatus(`Upload complete — file ID: ${result.id}`)
-          setProgress(100)
+          const done = (await res.json()) as { id: string }
+          setPct(100)
+          log(`Google accepted the file: ${done.id}`)
+          const c = await api<{ rawFileId: string; driveLink: string }>('/api/upload/complete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId, driveFileId: done.id }),
+          })
+          if (!c.ok) throw new Error(`complete failed: ${c.status} ${c.data.error}`)
+          log(`recorded raw_files row ${c.data.rawFileId} → ${c.data.driveLink}`)
           return
         } else {
-          const text = await res.text()
-          addLog(`Chunk upload failed: ${res.status} ${text}`)
-          setStatus(`Upload failed at byte ${uploaded}`)
-          return
+          throw new Error(`chunk PUT failed: ${res.status}`)
         }
-
-        uploaded = end
-        const pct = Math.round((uploaded / file.size) * 100)
-        setProgress(pct)
+        setPct(Math.round((offset / file.size) * 100))
       }
-
-      // Step 3: Query final progress
-      addLog('Querying final progress...')
-      const progressRes = await fetch(`/api/upload/progress?sessionUri=${encodeURIComponent(sessionUri)}`, {
-        method: 'PUT',
-        headers: { 'Content-Range': `bytes */${file.size}` },
-      })
-
-      setStatus('Upload complete!')
     } catch (e) {
-      addLog(`Error: ${e instanceof Error ? e.message : String(e)}`)
-      setStatus('Upload failed')
+      log(`ERROR ${e instanceof Error ? e.message : String(e)}`)
+    } finally {
+      setBusy(false)
     }
   }
 
   return (
-    <div className="min-h-screen p-8 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold mb-2">Upload Wrapper Test</h1>
-      <p className="text-gray-400 mb-6 text-sm">
-        Tests the Drive resumable upload wrapper. Chunks upload directly to Google Drive — no bytes pass through the server.
-      </p>
-
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm text-gray-400 mb-2">Select a large file (500MB+) for best results</label>
-          <input
-            type="file"
-            onChange={handlePick}
-            className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-violet-600 file:text-white hover:file:bg-violet-700"
-          />
-        </div>
-
-        {file && (
-          <div className="bg-gray-900 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-300">{file.name}</span>
-              <span className="text-sm text-gray-400">{(file.size / 1024 / 1024).toFixed(1)} MB</span>
-            </div>
-            <div className="w-full bg-gray-800 rounded-full h-2 mb-4">
-              <div
-                className="bg-violet-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-            <p className="text-sm text-gray-400 mb-4">{status}</p>
-            <button
-              onClick={handleUpload}
-              className="px-6 py-2 bg-violet-600 text-white rounded hover:bg-violet-700 transition-colors"
-            >
-              Upload to Drive
-            </button>
-          </div>
-        )}
-
-        {logs.length > 0 && (
-          <div className="bg-black rounded-lg p-4 font-mono text-xs text-green-400 max-h-96 overflow-y-auto">
-            {logs.map((log, i) => (
-              <div key={i}>{log}</div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
+    <main style={{ maxWidth: 640, margin: '40px auto', padding: 16, fontFamily: 'sans-serif' }}>
+      <h1>Upload wrapper test (Phase 0)</h1>
+      <p>Sign in as a cameraman assigned to the shoot. Close the tab mid-upload, reopen, re-pick the same file to resume.</p>
+      <label>Shoot id <input value={shootId} onChange={(e) => setShootId(e.target.value)} /></label>{' '}
+      <label>Content item id <input value={contentItemId} onChange={(e) => setContentItemId(e.target.value)} /></label>
+      <p><input type="file" onChange={(e) => { setFile(e.target.files?.[0] ?? null); setPct(0) }} /></p>
+      <progress value={pct} max={100} style={{ width: '100%' }} /> {pct}%
+      <p><button onClick={upload} disabled={!file || busy}>Upload / resume</button></p>
+      <pre style={{ background: '#111', color: '#7f7', padding: 12, maxHeight: 320, overflow: 'auto' }}>{logs.join('\n')}</pre>
+    </main>
   )
 }

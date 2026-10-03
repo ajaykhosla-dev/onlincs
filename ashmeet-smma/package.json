@@ -6,26 +6,38 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --conditions=react-server --import tsx --test tests/*.test.ts",
+    "verify:drive": "tsx --conditions=react-server --env-file=.env.local scripts/verify-drive.ts",
+    "verify:b2": "tsx --conditions=react-server --env-file=.env.local scripts/verify-b2.ts",
+    "format": "prettier --write ."
   },
   "dependencies": {
-    "@auth/core": "^0.41.3",
+    "@aws-sdk/client-s3": "^3.1146.0",
+    "@aws-sdk/s3-request-presigner": "^3.1146.0",
     "@supabase/supabase-js": "^2.117.2",
     "dotenv": "^18.0.5",
     "googleapis": "^182.0.0",
     "next": "16.3.7",
     "next-auth": "^4.24.15",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "server-only": "^0.0.1",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.7",
+    "pg": "^8.23.1",
+    "prettier": "^3.9.9",
+    "prettier-plugin-tailwindcss": "^0.8.1",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }

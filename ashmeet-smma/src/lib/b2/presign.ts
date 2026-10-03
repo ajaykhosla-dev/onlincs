@@ -1,48 +1,51 @@
+import 'server-only'
+import {
+  S3Client,
+  GetObjectCommand,
+  PutObjectCommand,
+  DeleteObjectCommand,
+  CreateMultipartUploadCommand,
+  UploadPartCommand,
+  CompleteMultipartUploadCommand,
+  AbortMultipartUploadCommand,
+} from '@aws-sdk/client-s3'
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { env } from '@/lib/env'
 
-export const b2Config = {
+// B2's S3-compatible API. Bytes go browser -> B2 via these presigned URLs,
+// never through the Next.js server.
+export const b2 = new S3Client({
   endpoint: env.B2_ENDPOINT,
   region: env.B2_REGION,
-  bucket: env.B2_BUCKET,
-  keyId: env.B2_KEY_ID,
-  applicationKey: env.B2_APPLICATION_KEY,
+  forcePathStyle: true,
+  credentials: { accessKeyId: env.B2_KEY_ID, secretAccessKey: env.B2_APPLICATION_KEY },
+})
+
+const Bucket = env.B2_BUCKET
+const DEFAULT_TTL = 15 * 60
+
+export const presignPut = (Key: string, ContentType: string, expiresIn = DEFAULT_TTL) =>
+  getSignedUrl(b2, new PutObjectCommand({ Bucket, Key, ContentType }), { expiresIn })
+
+export const presignGet = (Key: string, expiresIn = DEFAULT_TTL) =>
+  getSignedUrl(b2, new GetObjectCommand({ Bucket, Key }), { expiresIn })
+
+export async function createMultipart(Key: string, ContentType: string) {
+  const res = await b2.send(new CreateMultipartUploadCommand({ Bucket, Key, ContentType }))
+  if (!res.UploadId) throw new Error('B2 did not return an UploadId')
+  return res.UploadId
 }
 
-/**
- * Generate a presigned upload URL for B2.
- */
-export async function getUploadUrl(fileName: string, contentType: string): Promise<{ uploadUrl: string; fileId: string }> {
-  const res = await fetch(`${b2Config.endpoint}/${b2Config.bucket}/${fileName}`, {
-    method: 'PUT',
-    headers: {
-      Authorization: `Basic ${Buffer.from(`${b2Config.keyId}:${b2Config.applicationKey}`).toString('base64')}`,
-      'Content-Type': contentType,
-      'X-Bz-File-Name': encodeURIComponent(fileName),
-      'X-Bz-Content-Type': contentType,
-    },
-  })
+export const presignPart = (Key: string, UploadId: string, PartNumber: number, expiresIn = DEFAULT_TTL) =>
+  getSignedUrl(b2, new UploadPartCommand({ Bucket, Key, UploadId, PartNumber }), { expiresIn })
 
-  if (!res.ok) throw new Error(`B2 upload failed: ${res.status}`)
-  return { uploadUrl: res.url, fileId: res.headers.get('X-Bz-File-Id') || '' }
-}
+export const completeMultipart = (Key: string, UploadId: string, parts: { PartNumber: number; ETag: string }[]) =>
+  b2.send(new CompleteMultipartUploadCommand({ Bucket, Key, UploadId, MultipartUpload: { Parts: parts } }))
 
-/**
- * Generate a presigned download URL for B2.
- */
-export function getDownloadUrl(fileName: string): string {
-  const authHeader = Buffer.from(`${b2Config.keyId}:${b2Config.applicationKey}`).toString('base64')
-  return `${b2Config.endpoint}/b2api/v1/b2_download_file_by_name?fileName=${encodeURIComponent(fileName)}&bucket=${b2Config.bucket}`
-}
+export const abortMultipart = (Key: string, UploadId: string) =>
+  b2.send(new AbortMultipartUploadCommand({ Bucket, Key, UploadId }))
 
-/**
- * Download a file from B2 with range support (for video scrubbing).
- */
-export async function downloadRange(fileName: string, start: number, end: number): Promise<Response> {
-  const url = getDownloadUrl(fileName)
-  return fetch(url, {
-    headers: {
-      Authorization: `Basic ${Buffer.from(`${b2Config.keyId}:${b2Config.applicationKey}`).toString('base64')}`,
-      Range: `bytes=${start}-${end}`,
-    },
-  })
-}
+export const deleteObject = (Key: string) => b2.send(new DeleteObjectCommand({ Bucket, Key }))
+
+/** Unsigned URL for the object — must be rejected (401/403) by a private bucket. */
+export const unsignedUrl = (Key: string) => `${env.B2_ENDPOINT}/${Bucket}/${Key}`

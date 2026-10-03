@@ -1,24 +1,8 @@
-import React from 'react'
-
-interface ProgressBarProps {
-  value: number
-  max?: number
-  label?: string
-  variant?: 'default' | 'warn' | 'done'
-}
-
-export function ProgressBar({ value, max = 100, label, variant }: ProgressBarProps) {
-  const pct = (value / max) * 100
-
+/** Thin gradient bar. `warn` when behind, `done` at 100%. */
+export function ProgressBar({ value, tone }: { value: number; tone?: 'warn' | 'done' }) {
   return (
-    <div>
-      {label && <span className="scope-pct">{label}</span>}
-      <div className="track">
-        <i
-          className={variant}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-    </div>
+    <span className="track">
+      <i className={tone} style={{ width: `${Math.max(0, Math.min(100, value))}%` }} />
+    </span>
   )
 }

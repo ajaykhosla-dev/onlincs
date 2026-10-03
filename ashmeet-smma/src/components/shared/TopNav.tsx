@@ -1,48 +1,73 @@
 'use client'
 
-import React from 'react'
+import { useState, type ReactNode } from 'react'
+import { IconBell, IconGear, IconMoon, IconSearch, IconSun } from './icons'
 
-interface TopNavTab {
-  label: string
-  href: string
-}
+export type TopNavTab = { label: string; icon: ReactNode; active?: boolean }
 
-interface TopNavProps {
-  title: string
-  tabs?: TopNavTab[]
-  showSearch?: boolean
-  searchPlaceholder?: string
-  rightSlot?: React.ReactNode
-}
-
+/**
+ * Top navigation. Every slot is optional: Editor and Cameraman use a reduced version.
+ * The Light/Dark segment is visual only (no persistence), exactly as in the prototype.
+ */
 export function TopNav({
-  title,
   tabs,
-  showSearch,
-  searchPlaceholder = 'Search anything…',
-  rightSlot,
-}: TopNavProps) {
+  searchPlaceholder,
+  appearance = true,
+  bell = true,
+  gearLabel,
+  children,
+}: {
+  tabs?: TopNavTab[]
+  searchPlaceholder?: string
+  appearance?: boolean
+  bell?: boolean
+  gearLabel?: string
+  children?: ReactNode
+}) {
+  const [mode, setMode] = useState<'light' | 'dark'>('light')
+
   return (
     <nav className="topnav">
-      {tabs?.map(t => (
-        <a
-          key={t.href}
-          href={t.href}
-          className={`tab ${t.href === '#' ? 'is-active' : ''}`}
-        >
+      {tabs?.map((t) => (
+        <a key={t.label} href="#" className={`tab${t.active ? ' is-active' : ''}`} onClick={(e) => e.preventDefault()}>
+          {t.icon}
           {t.label}
         </a>
       ))}
-      {showSearch && (
+
+      {searchPlaceholder && (
         <div className="search">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.3-4.3" />
-          </svg>
-          <input type="text" placeholder={searchPlaceholder} />
+          <IconSearch />
+          <input type="search" placeholder={searchPlaceholder} aria-label="Search" />
         </div>
       )}
-      {rightSlot && <div className="nav-right">{rightSlot}</div>}
+
+      <div className="nav-right">
+        {appearance && (
+          <div className="seg" role="group" aria-label="Appearance">
+            <button type="button" className={mode === 'light' ? 'is-active' : undefined} onClick={() => setMode('light')}>
+              <IconSun />
+              Light
+            </button>
+            <button type="button" className={mode === 'dark' ? 'is-active' : undefined} onClick={() => setMode('dark')}>
+              <IconMoon />
+              Dark
+            </button>
+          </div>
+        )}
+        {bell && (
+          <button type="button" className="ghost" aria-label="Notifications">
+            <IconBell />
+            <span className="dot"></span>
+          </button>
+        )}
+        {gearLabel && (
+          <button type="button" className="ghost" aria-label={gearLabel}>
+            <IconGear />
+          </button>
+        )}
+        {children}
+      </div>
     </nav>
   )
 }

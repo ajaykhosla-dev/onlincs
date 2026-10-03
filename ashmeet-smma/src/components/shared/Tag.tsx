@@ -1,12 +1,12 @@
-import React from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 
-type TagVariant = 'mint' | 'sky' | 'lav' | 'amber' | 'pink' | 'grey'
+export type TagVariant = 'grey' | 'lav' | 'amber' | 'pink' | 'mint' | 'sky'
 
-interface TagProps {
-  variant?: TagVariant
-  children: React.ReactNode
-}
-
-export function Tag({ variant = 'grey', children }: TagProps) {
-  return <span className={`tag t--${variant}`}>{children}</span>
+/** Pastel status pill. The meaning is always carried by the text, never by colour alone. */
+export function Tag({ variant = 'grey', style, children }: { variant?: TagVariant; style?: CSSProperties; children: ReactNode }) {
+  return (
+    <span className={`tag t--${variant}`} style={style}>
+      {children}
+    </span>
+  )
 }

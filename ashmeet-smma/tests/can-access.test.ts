@@ -1,99 +1,83 @@
-/**
- * Unit tests for lib/auth/can-access.ts
- * Run: npx tsx tests/can-access.test.ts
- */
+import { test } from 'node:test'
+import assert from 'node:assert/strict'
+import { canAccess, type Resource, type Action } from '../src/lib/auth/can-access'
+import type { User, Role } from '../src/types/database'
 
-import { canAccess } from '@/lib/auth/can-access'
-import type { User } from '@/types/database'
-
-const makeUser = (overrides: Partial<User> = {}): User => ({
-  id: 'u-test',
-  agency_id: 'ag-test',
-  email: 'test@test.com',
-  full_name: 'Test User',
-  initials: 'TU',
-  role: 'admin',
-  avatar_gradient: 'linear-gradient(140deg,#8F80F7,#5A4AD8)',
-  phone: null,
-  is_active: true,
-  ...overrides,
+const user = (role: Role, id = `u-${role}`, agency_id = 'ag-1', is_active = true): User => ({
+  id, agency_id, role, is_active, email: `${id}@x.com`, full_name: id, initials: 'XX',
+  avatar_gradient: '', phone: null,
 })
 
-let passed = 0
-let failed = 0
+const admin = user('admin')
+const mgr = user('brand_manager')
+const otherMgr = user('brand_manager', 'u-mgr2')
+const editor = user('editor')
+const otherEditor = user('editor', 'u-ed2')
+const cam = user('cameraman')
+const otherCam = user('cameraman', 'u-cam2')
+const owner = user('platform_owner', 'u-owner', 'ag-platform')
 
-function test(description: string, actual: boolean, expected: boolean) {
-  if (actual === expected) {
-    console.log(`  ✓ ${description}`)
-    passed++
-  } else {
-    console.error(`  ✗ ${description} — expected ${expected}, got ${actual}`)
-    failed++
+const A = 'ag-1'
+const client: Resource = { type: 'client', agency_id: A, manager_id: mgr.id, assigned_editor_ids: [editor.id] }
+const item: Resource = { type: 'content_item', agency_id: A, client_manager_id: mgr.id, assigned_editor_id: editor.id, shoot_cameraman_ids: [cam.id] }
+const shoot: Resource = { type: 'shoot', agency_id: A, client_manager_id: mgr.id, cameraman_id: cam.id }
+const deliverable: Resource = { type: 'deliverable', agency_id: A, client_manager_id: mgr.id, assigned_editor_id: editor.id }
+const session: Resource = { type: 'upload_session', agency_id: A, started_by: cam.id, cameraman_id: cam.id }
+const agency: Resource = { type: 'agency', agency_id: A }
+const all = [client, item, shoot, deliverable, session, agency]
+const actions: Action[] = ['read', 'write', 'delete']
+
+test('platform_owner crosses agencies, all actions', () => {
+  for (const r of all) for (const a of actions) assert.equal(canAccess(owner, r, a), true)
+})
+
+test('admin: everything in own agency, nothing in another', () => {
+  for (const r of all) for (const a of actions) {
+    assert.equal(canAccess(admin, r, a), true)
+    assert.equal(canAccess(admin, { ...r, agency_id: 'ag-2' } as Resource, a), false)
   }
-}
+})
 
-console.log('\n=== canAccess Unit Tests ===\n')
-
-// ── platform_owner — all resources, all actions ──────────────────────────
-console.log('platform_owner:')
-const platformOwner = makeUser({ role: 'platform_owner' })
-const allResources = ['content_item', 'client', 'shoot', 'deliverable', 'upload_session', 'agency'] as const
-const allActions = ['read', 'write', 'delete'] as const
-
-for (const resource of allResources) {
-  for (const action of allActions) {
-    test(`${action} ${resource}`, canAccess(platformOwner, resource, action), true)
+test('brand_manager: only own clients and their items; never agency or sessions', () => {
+  for (const r of [client, item, shoot, deliverable]) {
+    assert.equal(canAccess(mgr, r, 'read'), true)
+    assert.equal(canAccess(mgr, r, 'write'), true)
+    assert.equal(canAccess(otherMgr, r, 'read'), false)
+    assert.equal(canAccess(otherMgr, r, 'write'), false)
   }
-}
+  assert.equal(canAccess(mgr, client, 'delete'), false)
+  assert.equal(canAccess(mgr, agency, 'read'), false)
+  assert.equal(canAccess(mgr, session, 'read'), false)
+})
 
-// ── admin — all resources within agency ──────────────────────────────────
-console.log('\nadmin:')
-const admin = makeUser({ role: 'admin' })
-for (const resource of allResources) {
-  for (const action of allActions) {
-    test(`${action} ${resource}`, canAccess(admin, resource, action), true)
+test('editor: only assigned items/deliverables; read-only parent client', () => {
+  for (const r of [item, deliverable]) {
+    assert.equal(canAccess(editor, r, 'read'), true)
+    assert.equal(canAccess(editor, r, 'write'), true)
+    assert.equal(canAccess(editor, r, 'delete'), false)
+    assert.equal(canAccess(otherEditor, r, 'read'), false)
   }
-}
+  assert.equal(canAccess(editor, client, 'read'), true)
+  assert.equal(canAccess(editor, client, 'write'), false)
+  assert.equal(canAccess(otherEditor, client, 'read'), false)
+  for (const r of [shoot, session, agency]) assert.equal(canAccess(editor, r, 'read'), false)
+})
 
-// ── brand_manager ────────────────────────────────────────────────────────
-console.log('\nbrand_manager:')
-const brandManager = makeUser({ role: 'brand_manager' })
-test('read client', canAccess(brandManager, 'client', 'read'), true)
-test('read content_item', canAccess(brandManager, 'content_item', 'read'), true)
-test('write content_item', canAccess(brandManager, 'content_item', 'write'), true)
-test('read shoot', canAccess(brandManager, 'shoot', 'read'), true)
-test('write shoot', canAccess(brandManager, 'shoot', 'write'), true)
-test('read deliverable', canAccess(brandManager, 'deliverable', 'read'), true)
-test('write agency', canAccess(brandManager, 'agency', 'write'), false)
-test('delete client', canAccess(brandManager, 'client', 'delete'), false)
+test('cameraman: only own shoots, linked items read-only, own sessions', () => {
+  assert.equal(canAccess(cam, shoot, 'read'), true)
+  assert.equal(canAccess(cam, shoot, 'write'), true)
+  assert.equal(canAccess(otherCam, shoot, 'read'), false)
+  assert.equal(canAccess(cam, item, 'read'), true)
+  assert.equal(canAccess(cam, item, 'write'), false)
+  assert.equal(canAccess(otherCam, item, 'read'), false)
+  assert.equal(canAccess(cam, session, 'write'), true)
+  assert.equal(canAccess(otherCam, session, 'write'), false)
+  for (const r of [client, deliverable, agency]) assert.equal(canAccess(cam, r, 'read'), false)
+})
 
-// ── editor ───────────────────────────────────────────────────────────────
-console.log('\neditor:')
-const editor = makeUser({ role: 'editor' })
-test('read content_item', canAccess(editor, 'content_item', 'read'), true)
-test('write content_item', canAccess(editor, 'content_item', 'write'), true)
-test('read client', canAccess(editor, 'client', 'read'), true)
-test('read deliverable', canAccess(editor, 'deliverable', 'read'), true)
-test('write deliverable', canAccess(editor, 'deliverable', 'write'), true)
-test('write shoot', canAccess(editor, 'shoot', 'write'), false)
-test('write agency', canAccess(editor, 'agency', 'write'), false)
-test('delete content_item', canAccess(editor, 'content_item', 'delete'), false)
-
-// ── cameraman ────────────────────────────────────────────────────────────
-console.log('\ncameraman:')
-const cameraman = makeUser({ role: 'cameraman' })
-test('read shoot', canAccess(cameraman, 'shoot', 'read'), true)
-test('write shoot', canAccess(cameraman, 'shoot', 'write'), true)
-test('read content_item', canAccess(cameraman, 'content_item', 'read'), true)
-test('read upload_session', canAccess(cameraman, 'upload_session', 'read'), true)
-test('write client', canAccess(cameraman, 'client', 'write'), false)
-test('write deliverable', canAccess(cameraman, 'deliverable', 'write'), false)
-test('write agency', canAccess(cameraman, 'agency', 'write'), false)
-
-// ── Negative cases ───────────────────────────────────────────────────────
-console.log('\nnegative cases:')
-const noRole = makeUser({ role: 'unknown' as any })
-test('unknown role cannot do anything', canAccess(noRole, 'content_item', 'read'), false)
-
-console.log(`\n=== Results: ${passed} passed, ${failed} failed ===\n`)
-process.exit(failed > 0 ? 1 : 0)
+test('cross-agency and inactive users are denied', () => {
+  for (const u of [mgr, editor, cam]) for (const r of all) {
+    assert.equal(canAccess({ ...u, agency_id: 'ag-2' }, r, 'read'), false)
+    assert.equal(canAccess({ ...u, is_active: false }, r, 'read'), false)
+  }
+})

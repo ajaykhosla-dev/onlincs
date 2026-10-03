@@ -1,14 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
-import { env } from '@/lib/env'
+import { publicEnv } from '@/lib/env.public'
 
-// Browser-safe client (uses anon key — server-side RLS will protect data)
-export const supabase = createClient(
-  env.NEXT_PUBLIC_SUPABASE_URL,
-  env.SUPABASE_SERVICE_ROLE_KEY, // use service role as placeholder — replace with anon key
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  }
-)
+// Browser-safe client: anon key only. RLS is the wall for anything it can reach.
+export const supabase = createClient(publicEnv.supabaseUrl, publicEnv.supabaseAnonKey, {
+  auth: { autoRefreshToken: false, persistSession: false },
+})

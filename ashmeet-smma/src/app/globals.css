@@ -1,4 +1,2 @@
 @import '../styles/theme.css';
-
-html { scroll-behavior: smooth; }
-body { overflow-x: hidden; }
+@import '../styles/a11y-contrast.css';

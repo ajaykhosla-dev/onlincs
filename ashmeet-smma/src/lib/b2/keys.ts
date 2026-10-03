@@ -1,39 +1,17 @@
 /**
- * B2 key helpers.
- * These generate presigned URLs for upload/download operations.
- * Used by Phase 5 (editor media) and Phase 6 (review/approval).
+ * B2 object-key helpers. Pure functions, no I/O.
+ * Layout follows techstack.md §3: {agency}/{client}/{item}/v{n}.mp4 etc.
  */
 
-import { env } from '@/lib/env'
+const safe = (s: string) => s.toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '')
 
-export const b2Config = {
-  endpoint: env.B2_ENDPOINT,
-  region: env.B2_REGION,
-  bucket: env.B2_BUCKET,
-  keyId: env.B2_KEY_ID,
-  applicationKey: env.B2_APPLICATION_KEY,
-}
+export const verifyKey = () => `__verify/phase0-${Date.now()}.bin`
 
-/**
- * Build the S3-compatible authorization header for B2.
- */
-export function b2AuthHeader(): string {
-  return `Basic ${Buffer.from(`${b2Config.keyId}:${b2Config.applicationKey}`).toString('base64')}`
-}
+export const cutKey = (agencyId: string, contentItemId: string, version: number, ext = 'mp4') =>
+  `${agencyId}/cuts/${contentItemId}/v${version}.${safe(ext)}`
 
-/**
- * Generate a presigned upload URL for a specific file key.
- * The file is uploaded directly to B2 — bytes never touch the Next.js server.
- */
-export function presignUploadUrl(fileName: string, contentType: string): string {
-  const encodedName = encodeURIComponent(fileName)
-  return `${b2Config.endpoint}/${b2Config.bucket}/${encodedName}`
-}
+export const voiceNoteKey = (agencyId: string, versionId: string, commentId: string) =>
+  `${agencyId}/voice-notes/${versionId}/${commentId}.webm`
 
-/**
- * Generate a presigned download URL for a specific file key.
- */
-export function presignDownloadUrl(fileName: string): string {
-  const encodedName = encodeURIComponent(fileName)
-  return `${b2Config.endpoint}/${b2Config.bucket}/${encodedName}`
-}
+export const libraryKey = (agencyId: string, clientId: string, folder: string, fileName: string) =>
+  `${agencyId}/library/${clientId}/${safe(folder)}/${safe(fileName)}`

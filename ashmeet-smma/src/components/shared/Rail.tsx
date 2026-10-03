@@ -1,34 +1,46 @@
 'use client'
 
-import React from 'react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import type { ReactNode } from 'react'
 
-interface RailItem {
-  icon: React.ReactNode
+export type RailItem = {
+  key: string
   label: string
   href: string
-  badge?: number
-  active?: boolean
+  icon: ReactNode
+  badge?: number | string
 }
 
-interface RailProps {
-  items: RailItem[]
-  logoText?: string
-  appName?: string
-}
+/** The violet gradient sidebar. Active state follows the URL. `foot` items sit behind the hairline divider. */
+export function Rail({ initials, items, foot }: { initials: string; items: RailItem[]; foot?: RailItem[] }) {
+  const pathname = usePathname()
+  const isActive = (i: RailItem) => pathname === i.href || pathname.startsWith(i.href + '/')
 
-export function Rail({ items, logoText = 'RA', appName = 'RapidArc AI' }: RailProps) {
+  const button = (i: RailItem) => {
+    const active = isActive(i)
+    return (
+      <Link
+        key={i.key}
+        href={i.href}
+        className={`rail-btn${active ? ' is-active' : ''}`}
+        aria-current={active ? 'page' : undefined}
+        aria-label={i.label}
+      >
+        {i.icon}
+        {i.badge !== undefined && <span className="rail-badge">{i.badge}</span>}
+        <span className="tip">{i.label}</span>
+      </Link>
+    )
+  }
+
   return (
-    <div className="rail">
+    <aside className="rail">
       <div className="rail-inner">
-        <div className="rail-logo">{logoText}</div>
-        {items.map(item => (
-          <a key={item.href} href={item.href} className={`rail-btn ${item.active ? 'is-active' : ''}`}>
-            {item.icon}
-            {item.badge ? <span className="rail-badge">{item.badge}</span> : null}
-            {item.label && <span className="tip">{item.label}</span>}
-          </a>
-        ))}
+        <div className="rail-logo">{initials}</div>
+        {items.map(button)}
+        {foot && foot.length > 0 && <div className="rail-foot">{foot.map(button)}</div>}
       </div>
-    </div>
+    </aside>
   )
 }

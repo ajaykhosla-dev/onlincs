@@ -1,86 +1,52 @@
-'use client'
-import { useState } from 'react'
-import { TopNav, MetricCard, FilterStrip, DataTable, Pager, Tag, EmptyState, ProgressBar } from '@/components/shared'
-import { getClientsForManager, contentItems, users, getContentItemsForClient } from '@/lib/fixtures'
+import { ClientsTable } from '@/components/console/ClientsTable'
+import { QueueList } from '@/components/console/QueueList'
+import { ScopeBanner } from '@/components/console/ScopeBanner'
+import { MetricCard } from '@/components/shared'
+import { IconBriefcase, IconCheck, IconHourglass, IconReport } from '@/components/shared/icons'
+import { jaspreetClients, waitingOnJaspreet } from '@/lib/fixtures/console'
 
 export default function ManagerClientsPage() {
-  const managerClients = getClientsForManager('u-2') // Jaspreet Kaur's clients only
-  const [filterStatus, setFilterStatus] = useState('all')
-  let filtered = managerClients
-  if (filterStatus !== 'all') filtered = filtered.filter(c => c.status === filterStatus)
-
-  const metrics = [
-    { label: 'My clients', value: String(managerClients.length), theme: 'violet' as const },
-    { label: 'Items this month', value: String(filtered.reduce((s, c) => s + getContentItemsForClient(c.id).length, 0)), theme: 'amber' as const },
-    { label: 'Awaiting approval', value: String(filtered.reduce((s, c) => s + getContentItemsForClient(c.id).filter(ci => ci.status === 'with_client').length, 0)), theme: 'pink' as const },
-  ]
-
   return (
     <>
-      <TopNav
-        title="Clients"
-        tabs={[
-          { label: 'Clients', href: '#' },
-          { label: 'Calendar', href: '/manager/calendar' },
-          { label: 'Editors\' den', href: '/manager/den' },
-          { label: 'Posting', href: '/manager/posting' },
-          { label: 'Planner', href: '/manager/planner' },
-        ]}
-        showSearch
-        searchPlaceholder="Search clients…"
-        rightSlot={<button className="btn-dark">+ Schedule a shoot</button>}
-      />
+      <ScopeBanner>Your clients &mdash; Ramana Dental and Grover Motors only</ScopeBanner>
 
-      <div className="scope-banner">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        Your clients — {managerClients.map(c => c.name).join(' and ')} only
-      </div>
-
-      <div className="hero-row">
-        {metrics.map(m => <MetricCard key={m.label} label={m.label} value={m.value} theme={m.theme} />)}
-      </div>
-
-      <FilterStrip
-        label="My clients"
-        filters={[
-          { key: 'status', label: 'Status', value: filterStatus, options: [{ value: 'all', label: 'All' }, { value: 'active', label: 'Active' }, { value: 'onboarding', label: 'Onboarding' }, { value: 'paused', label: 'Paused' }] },
-        ]}
-        onFilterChange={(_, v) => setFilterStatus(v)}
-      />
-
-      <div className="card">
-        <div className="table-scroll">
-          <table>
-            <thead><tr><th>CLIENT</th><th>MONTHLY SCOPE</th><th>ITEMS IN PIPELINE</th><th>STATUS</th></tr></thead>
-            <tbody>
-              {filtered.map(c => {
-                const items = getContentItemsForClient(c.id)
-                const posted = items.filter(i => i.status === 'posted').length
-                return (
-                  <tr key={c.id}>
-                    <td>
-                      <div className="client">
-                        <div className="mono" style={{ background: 'linear-gradient(140deg,#8F80F7,#5A4AD8)' }}>{c.code.slice(0,2)}</div>
-                        <div>
-                          <div className="client-name">{c.name}</div>
-                          <div className="client-sub">{c.handle} · {c.niche}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="scope">
-                        <ProgressBar value={posted} max={8} label={`${posted}/8`} variant={posted >= 7 ? 'done' : posted >= 4 ? 'default' : 'warn'} />
-                      </div>
-                    </td>
-                    <td style={{ fontSize: '12.5px', fontWeight: 600 }}>{items.length} items</td>
-                    <td><Tag variant={c.status === 'active' ? 'mint' : c.status === 'onboarding' ? 'lav' : 'amber'}>{c.status}</Tag></td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+      <section className="hero-row">
+        <div className="hello">
+          <h1>
+            Hi Jaspreet!<span className="light">Here&apos;s where your two accounts stand.</span>
+          </h1>
+          <p>Ramana Dental has two approvals waiting on you. Grover Motors is fully on track this month.</p>
         </div>
-        <Pager currentPage={1} totalPages={1} onPageChange={() => {}} />
+        <MetricCard tone="violet" icon={<IconBriefcase />} value={2} label="Your clients" note="Ramana Dental, Grover Motors" />
+        <MetricCard tone="amber" icon={<IconHourglass />} value={2} label="Waiting on approval" note="Both on Ramana Dental" />
+        <MetricCard tone="mint" icon={<IconCheck />} value={0} label="Past deadline" note="Both accounts on schedule" />
+      </section>
+
+      <div className="grid">
+        <section className="card">
+          <div className="card-head">
+            <div className="card-title">Your clients</div>
+          </div>
+          <ClientsTable rows={jaspreetClients} showManager={false} paged={false} />
+        </section>
+
+        <aside className="side">
+          <section className="card queue">
+            <div className="card-head" style={{ padding: '0 0 4px' }}>
+              <div className="card-title">Waiting on you</div>
+            </div>
+            <QueueList items={waitingOnJaspreet} />
+          </section>
+
+          <section className="promo">
+            <div className="promo-badge">
+              <IconReport />
+            </div>
+            <h3 aria-level={2}>Ramana Dental</h3>
+            <p>70% of this month&apos;s scope delivered with 7 days left &mdash; on pace to finish on time.</p>
+            <button type="button">Open report</button>
+          </section>
+        </aside>
       </div>
     </>
   )

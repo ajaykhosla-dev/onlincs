@@ -1,58 +1,33 @@
 'use client'
 
-import React from 'react'
+import type { ReactNode } from 'react'
 
-interface PagerProps {
-  currentPage: number
-  totalPages: number
-  onPageChange: (page: number) => void
-  totalItems?: number
-  pageSize?: number
-}
+const chevron = (d: string) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d={d} />
+  </svg>
+)
 
-export function Pager({ currentPage, totalPages, onPageChange, totalItems, pageSize = 10 }: PagerProps) {
-  const startItem = totalItems !== undefined ? (currentPage - 1) * pageSize + 1 : 0
-  const endItem = totalItems !== undefined ? Math.min(currentPage * pageSize, totalItems) : 0
-
-  const pages = Array.from({ length: totalPages }, (_, i) => i + 1)
-
+/** Table footer: a count note and, when there is more than one page, the page buttons. */
+export function Pager({ note, page, pages, onPage }: { note: ReactNode; page?: number; pages?: number; onPage?: (p: number) => void }) {
   return (
     <div className="table-foot">
-      {totalItems !== undefined && (
-        <span className="foot-note">
-          Showing <b>{startItem}–{endItem}</b> of {totalItems}
-        </span>
-      )}
-      <div className="pager">
-        <button
-          className="pg"
-          disabled={currentPage <= 1}
-          onClick={() => onPageChange(currentPage - 1)}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-        </button>
-        {pages.map(p => (
-          <button
-            key={p}
-            className={`pg ${p === currentPage ? 'is-active' : ''}`}
-            onClick={() => onPageChange(p)}
-            disabled={p === currentPage}
-          >
-            {p}
+      <div className="foot-note">{note}</div>
+      {page !== undefined && pages !== undefined && (
+        <div className="pager">
+          <button type="button" className="pg" disabled={page <= 1} aria-label="Previous page" onClick={() => onPage?.(page - 1)}>
+            {chevron('m15 18-6-6 6-6')}
           </button>
-        ))}
-        <button
-          className="pg"
-          disabled={currentPage >= totalPages}
-          onClick={() => onPageChange(currentPage + 1)}
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M9 18l6-6-6-6" />
-          </svg>
-        </button>
-      </div>
+          {Array.from({ length: pages }, (_, i) => (
+            <button key={i} type="button" className={`pg${page === i + 1 ? ' is-active' : ''}`} aria-current={page === i + 1 ? 'page' : undefined} onClick={() => onPage?.(i + 1)}>
+              {i + 1}
+            </button>
+          ))}
+          <button type="button" className="pg" disabled={page >= pages} aria-label="Next page" onClick={() => onPage?.(page + 1)}>
+            {chevron('m9 18 6-6-6-6')}
+          </button>
+        </div>
+      )}
     </div>
   )
 }
