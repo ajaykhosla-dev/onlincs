@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 
 // Deliberately crude Phase 0 harness for the upload wrapper. Chunks go straight from the browser to
 // Google's session URI with NO Authorization header; only the three /api/upload calls touch our server.
@@ -91,6 +92,7 @@ export default function UploadTestPage() {
 
   return (
     <main style={{ maxWidth: 640, margin: '40px auto', padding: 16, fontFamily: 'sans-serif' }}>
+      <Link href="/">Open workspace</Link>
       <h1>Upload wrapper test (Phase 0)</h1>
       <p>Sign in as a cameraman assigned to the shoot. Close the tab mid-upload, reopen, re-pick the same file to resume.</p>
       <label>Shoot id <input value={shootId} onChange={(e) => setShootId(e.target.value)} /></label>{' '}

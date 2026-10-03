@@ -5,6 +5,7 @@ import { Modal } from '@/components/shared'
 import { IconPlus } from '@/components/shared/icons'
 import { jaspreetClients, team } from '@/lib/fixtures/console'
 import { scheduleIdeas } from '@/lib/fixtures/console-screens'
+import { hasRole } from '@/lib/auth/roles'
 
 /** The Brand Manager's "Schedule a shoot" action and its modal. Phase 1: visual only. */
 export function ScheduleShootButton() {
@@ -54,7 +55,7 @@ export function ScheduleShootButton() {
           <label htmlFor="sf-cam">Cameraman</label>
           <select id="sf-cam">
             {team
-              .filter((m) => m.role === 'cameraman')
+              .filter(hasRole('cameraman'))
               .map((m) => (
                 <option key={m.id}>{m.full_name}</option>
               ))}

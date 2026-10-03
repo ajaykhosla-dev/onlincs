@@ -1,22 +1,18 @@
 import { Rail, TopNav } from '@/components/shared'
-import { IconLibrary, IconRedo, IconTodo } from '@/components/shared/icons'
+import { navigationFor } from '@/lib/auth/navigation'
+import { requireGroupUser } from '@/lib/auth/session'
 import '@/styles/screens/editor.css'
 
 // Editor chrome, from editor.html: three-item rail and a TopNav with only search, bell and the Light/Dark segment.
-export default function EditorLayout({ children }: { children: React.ReactNode }) {
+export default async function EditorLayout({ children }: { children: React.ReactNode }) {
+  const user = await requireGroupUser('editor')
+  const navigation = navigationFor(user, 'editor')
   return (
     <div className="r-editor">
       <div className="shell">
-        <Rail
-          initials="RB"
-          items={[
-            { key: 'todo', label: 'To do', href: '/editor/todo', icon: <IconTodo />, badge: 3 },
-            { key: 'redo', label: 'Re do', href: '/editor/redo', icon: <IconRedo />, badge: 1 },
-            { key: 'library', label: 'Library', href: '/editor/library', icon: <IconLibrary /> },
-          ]}
-        />
+        <Rail initials={user.initials} {...navigation} />
         <main className="main">
-          <TopNav searchPlaceholder="Search your edits" />
+          <TopNav searchPlaceholder="Search your edits" user={user} />
           {children}
         </main>
       </div>

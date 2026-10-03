@@ -6,6 +6,9 @@ const TEAM_ROLES: readonly Role[] = ['brand_manager', 'editor', 'cameraman']
 /** Agency staff other than the owner/admin, i.e. the people listed on the Team screen. */
 export const isTeamRole = (role: Role) => TEAM_ROLES.includes(role)
 
+/** Role filtering for presentation lists; authorization still uses canAccess(). */
+export const hasRole = (role: Role) => <T extends { role: Role }>(person: T) => person.role === role
+
 const TAG_VARIANT: Partial<Record<Role, 'lav' | 'sky' | 'mint'>> = { brand_manager: 'lav', editor: 'sky', cameraman: 'mint' }
 
 /** Tag colour for a role badge, matching the approved prototype. */

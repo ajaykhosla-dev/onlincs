@@ -716,6 +716,8 @@ tbody td:last-child { border-radius: 0 16px 16px 0; }
 .cal-day.is-empty { background: transparent; }
 .cal-day.is-today { outline: 2px solid var(--violet); outline-offset: -2px; }
 .cal-daynum { font-size: 12px; font-weight: 700; color: var(--ink-soft); }
+.cal-day button.cal-daynum { border: 0; background: transparent; padding: 0; width: fit-content; cursor: pointer; }
+.cal-day button.cal-chip { border: 0; text-align: left; cursor: pointer; }
 .cal-chip {
   font-size: 10.5px;
   font-weight: 700;
