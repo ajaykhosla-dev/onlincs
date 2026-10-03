@@ -142,7 +142,7 @@ B2_KEY_ID=
 B2_APPLICATION_KEY=
 
 # Web Push
-VAPID_PUBLIC_KEY=
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=       # public: the browser needs it to subscribe
 VAPID_PRIVATE_KEY=
 VAPID_SUBJECT=
 
@@ -151,7 +151,21 @@ CREDENTIAL_ENCRYPTION_KEY=          # master key for agency_integrations and ses
 CRON_SECRET=
 TRANSCRIPTION_API_KEY=
 NEXT_PUBLIC_APP_URL=
+AUTH_SECRET=                        # NextAuth session signing (interim until Phase 2 moves to Supabase Auth)
 ```
+
+Server variables are validated by `lib/env.ts` (Zod, `server-only`); an `EnvError` names every missing one. Client-safe values are read through `lib/env.public.ts` only.
+
+**Key generation (run 3 Oct 2026; values live in `.env.local`, never committed):**
+
+```
+CREDENTIAL_ENCRYPTION_KEY   openssl rand -base64 32      # AES-256-GCM key, must decode to 32 bytes
+CRON_SECRET                 openssl rand -hex 32
+AUTH_SECRET                 openssl rand -base64 32
+VAPID keys                  npx web-push generate-vapid-keys --json
+```
+
+`GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` is the `private_key` field of the service-account JSON, wrapped in double quotes with newlines left as `\n`; `lib/env.ts` restores them.
 
 ---
 
@@ -210,4 +224,11 @@ Record every added package here with a one-line reason.
 
 | Package | Reason | Added in |
 |---|---|---|
-| _(none yet)_ | | |
+| zod | Environment and route-boundary validation (required by claude.md) | Phase 0 |
+| server-only | Makes importing env, the service-role client or B2/Drive helpers from a client component a build error | Phase 0 |
+| @aws-sdk/client-s3, @aws-sdk/s3-request-presigner | Real presigned URLs and multipart against B2's S3-compatible API; the earlier hand-rolled helper sent master credentials through the server | Phase 0 |
+| googleapis, @supabase/supabase-js, next-auth | Drive service account, database client, interim Google sign-in (replaced by Supabase Auth in Phase 2) | Phase 0 |
+| tsx (dev) | Runs verify scripts and the test suite | Phase 0 |
+| pg, @types/pg (dev) | Isolation tests exercise RLS as the `authenticated` role with a real JWT subject; the service role bypasses RLS | Phase 0 |
+| prettier, prettier-plugin-tailwindcss (dev) | Formatting required by the Phase 0 scaffold step | Phase 0 |
+| ~~@auth/core~~ | Removed: unused, and conflicted with next-auth v4's peer range | Phase 0 |
