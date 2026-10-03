@@ -12,10 +12,6 @@ const schema = z.object({
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(20),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(20),
 
-  AUTH_SECRET: z.string().min(32),
-  GOOGLE_OAUTH_CLIENT_ID: z.string().min(10),
-  GOOGLE_OAUTH_CLIENT_SECRET: z.string().min(10),
-
   GOOGLE_SERVICE_ACCOUNT_EMAIL: z.string().email(),
   GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY: z
     .string()

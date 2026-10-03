@@ -1,23 +1,20 @@
-import { Rail } from '@/components/shared'
-import { IconCalendar, IconUpload } from '@/components/shared/icons'
+import { Rail, TopNav } from '@/components/shared'
 import { OfflineBanner } from '@/components/cameraman/OfflineBanner'
 import { TabBar } from '@/components/cameraman/TabBar'
-import { pendingShoots } from '@/lib/fixtures/cameraman'
+import { navigationFor } from '@/lib/auth/navigation'
+import { requireGroupUser } from '@/lib/auth/session'
 import '@/styles/screens/cameraman.css'
 
 // Cameraman chrome, from cameraman.html: a two-item rail on larger screens, a bottom tab bar on mobile.
-export default function CameramanLayout({ children }: { children: React.ReactNode }) {
+export default async function CameramanLayout({ children }: { children: React.ReactNode }) {
+  const user = await requireGroupUser('cameraman')
+  const navigation = navigationFor(user, 'cameraman')
   return (
     <div className="r-cam">
       <div className="shell">
-        <Rail
-          initials="HS"
-          items={[
-            { key: 'shoots', label: 'Calendar', href: '/cameraman/shoots', icon: <IconCalendar /> },
-            { key: 'pending', label: 'Pending uploads', href: '/cameraman/pending', icon: <IconUpload />, badge: pendingShoots.length },
-          ]}
-        />
+        <Rail initials={user.initials} {...navigation} />
         <main className="main">
+          <TopNav appearance={false} bell={false} user={user} />
           <OfflineBanner />
           {children}
         </main>

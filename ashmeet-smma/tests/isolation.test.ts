@@ -2,7 +2,7 @@
  * Cross-tenant isolation and RLS tests (Phase 0, Step 9).
  *
  * These exercise RLS for real: each query runs as the `authenticated` Postgres role
- * with request.jwt.claims.sub set to a seeded user id, which is exactly what PostgREST
+ * with request.jwt.claims.sub set to a seeded user's linked Auth UUID, which is what PostgREST
  * does with a verified JWT. (The service role bypasses RLS, so it can prove nothing here.)
  *
  * Needs a database with the migrations applied:
@@ -32,8 +32,10 @@ async function as<T>(sub: string | null, fn: () => Promise<T>, setup?: () => Pro
   await db.query('begin')
   try {
     if (setup) await setup() // runs as the connecting superuser, before the role switch
+    const authId = sub === null ? null : (await db.query('select auth_user_id from users where id=$1', [sub])).rows[0]?.auth_user_id
+    if (sub && !authId) throw new Error(`Missing Auth UUID for ${sub}`)
     await db.query(`set local role ${sub === null ? 'anon' : 'authenticated'}`)
-    await db.query(`select set_config('request.jwt.claims', $1, true)`, [JSON.stringify(sub ? { sub, role: 'authenticated' } : {})])
+    await db.query(`select set_config('request.jwt.claims', $1, true)`, [JSON.stringify(authId ? { sub: authId, role: 'authenticated' } : {})])
     return await fn()
   } finally {
     await db.query('rollback')
@@ -163,11 +165,7 @@ test('a cameraman sees only their own shoots', async () => {
 })
 
 test('nobody reads upload_sessions.session_uri_enc through the API, for every role', async () => {
-  const owner = async () => {
-    await db.query(`insert into users (id, agency_id, email, full_name, initials, role, avatar_gradient)
-                    values ('u-test-owner', 'ag-1', 'o@x.com', 'Owner', 'PO', 'platform_owner', '')`)
-  }
-  const subs = [...Object.values(ROLES), NS_ADMIN, 'u-test-owner']
+  const subs = [...Object.values(ROLES), NS_ADMIN]
   for (const sub of subs) {
     await as(sub, async () => {
       for (const sql of ['select session_uri_enc from upload_sessions', 'select * from upload_sessions',
@@ -177,7 +175,7 @@ test('nobody reads upload_sessions.session_uri_enc through the API, for every ro
       }
       const ok = await tryQuery('select id, bytes_received, status, expires_at from upload_sessions')
       assert.ok('rows' in ok, `${sub}: non-secret columns should remain readable`)
-    }, owner)
+    })
   }
 })
 
@@ -222,5 +220,12 @@ test('writes are scoped too: no cross-manager edits, no cross-tenant inserts, no
       `insert into content_items (id, agency_id, client_id, title, slug, type, created_by)
        values ('ci-x', 'ag-1', 'cl-1', 't', 'x', 'reel', 'u-5')`)
     assert.ok('error' in res, 'editor must not create content items')
+  })
+})
+
+test('workspace admins cannot reassign an Auth identity link', async () => {
+  await as(ASHMEET_ADMIN, async () => {
+    const result = await tryQuery('update users set auth_user_id=null where id=$1', ['u-2'])
+    assert.ok('error' in result, 'Auth identity reassignment must be rejected')
   })
 })

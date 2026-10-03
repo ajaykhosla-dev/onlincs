@@ -12,7 +12,7 @@ Single source of truth for the stack. Anything added to `package.json` gets reco
 | Styling | `theme.css` tokens, mirrored into Tailwind config | Prototypes are hand-written CSS; preserve them rather than rewriting |
 | UI primitives | shadcn/ui | Tables, dialogs, drawers, calendars without committing to a library's look |
 | Database | Supabase (PostgreSQL) | Managed Postgres, RLS, generous free tier |
-| Auth | Supabase Auth, Google OAuth only | The team already has Google accounts; no passwords |
+| Auth | Supabase Auth, Google OAuth only; `@supabase/ssr` for Next.js cookies | The team already has Google accounts; persistent PKCE sessions and server-side refresh |
 | Authorization | Server-side `canAccess()` + RLS behind it | Defence in depth; RLS alone is too easy to get subtly wrong |
 | **Raw footage** | **Google Drive Shared Drive, via our own upload wrapper** | Drive resumable sessions give week-long resume; the wrapper keeps the cameraman out of Drive entirely |
 | **Edited cuts, voice notes, library** | **Backblaze B2 (S3-compatible)** | Presigned URLs, ranged streaming for scrubbing, expiring links for the client page |

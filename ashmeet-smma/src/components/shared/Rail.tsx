@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
+import { SignOutButton } from './SignOutButton'
 
 export type RailItem = {
   key: string
@@ -40,6 +41,7 @@ export function Rail({ initials, items, foot }: { initials: string; items: RailI
         <div className="rail-logo">{initials}</div>
         {items.map(button)}
         {foot && foot.length > 0 && <div className="rail-foot">{foot.map(button)}</div>}
+        <SignOutButton />
       </div>
     </aside>
   )

@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from 'react'
 import { IconBell, IconGear, IconMoon, IconSearch, IconSun } from './icons'
+import { SignOutButton } from './SignOutButton'
 
 export type TopNavTab = { label: string; icon: ReactNode; active?: boolean }
 
@@ -15,6 +16,7 @@ export function TopNav({
   appearance = true,
   bell = true,
   gearLabel,
+  user,
   children,
 }: {
   tabs?: TopNavTab[]
@@ -22,6 +24,7 @@ export function TopNav({
   appearance?: boolean
   bell?: boolean
   gearLabel?: string
+  user?: { full_name: string; initials: string; avatar_gradient: string }
   children?: ReactNode
 }) {
   const [mode, setMode] = useState<'light' | 'dark'>('light')
@@ -43,6 +46,13 @@ export function TopNav({
       )}
 
       <div className="nav-right">
+        {user && (
+          <div className="nav-user" aria-label={`Signed in as ${user.full_name}`}>
+            <span className="nav-user-name">{user.full_name}</span>
+            <span className="nav-user-avatar" style={{ background: user.avatar_gradient }}>{user.initials}</span>
+          </div>
+        )}
+        {user && <SignOutButton variant="topnav" />}
         {appearance && (
           <div className="seg" role="group" aria-label="Appearance">
             <button type="button" className={mode === 'light' ? 'is-active' : undefined} onClick={() => setMode('light')}>

@@ -1,8 +1,24 @@
 import GoogleSignInButton from '@/components/GoogleSignInButton'
+import { redirect } from 'next/navigation'
+import { getCurrentUser } from '@/lib/auth/current-user'
+import { homeForRole, safeReturnTo } from '@/lib/auth/routing'
 import '@/styles/screens/login.css'
 
-// Ported from login.html. The Google button is live (next-auth) rather than inert.
-export default function LoginPage() {
+// Ported from login.html. Google OAuth is started by the Supabase Auth route.
+export default async function LoginPage({ searchParams }: { searchParams?: Promise<{ next?: string; error?: string; expired?: string }> }) {
+  const params = await searchParams
+  const activeUser = await getCurrentUser()
+  const home = activeUser && homeForRole(activeUser.role)
+  const requested = safeReturnTo(params?.next)
+  if (home) redirect(requested && !requested.startsWith('/auth') ? requested : home)
+  const callbackUrl = requested ?? '/'
+  const message = params?.error === 'not_invited' || params?.error === 'AccessDenied'
+    ? "This account isn't part of a workspace yet. Ask your agency owner for an invite."
+    : params?.error === 'workspace_unavailable'
+      ? 'Workspace sign-in is temporarily unavailable. Please try again.'
+    : params?.expired === '1'
+      ? 'Your session expired, please sign in again.'
+      : null
   return (
     <main className="r-login">
       <div className="login-shell">
@@ -85,7 +101,8 @@ export default function LoginPage() {
             <h2>Ashmeet SMMA</h2>
             <p>Sign in with the Google account your agency invited to this workspace.</p>
 
-            <GoogleSignInButton callbackUrl="/dev/upload" />
+            {message && <p role="alert" className="login-message">{message}</p>}
+            <GoogleSignInButton callbackUrl={callbackUrl} />
 
             <div className="access-note">
               <svg

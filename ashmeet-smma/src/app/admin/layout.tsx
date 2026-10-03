@@ -1,37 +1,24 @@
 import { Rail, TopNav } from '@/components/shared'
+import { AddClientButton } from '@/components/console/AddClientButton'
 import {
-  IconCalendar,
   IconClients,
-  IconDen,
-  IconClock,
   IconDownload,
   IconPerformance,
   IconPipeline,
-  IconPlanner,
-  IconPlus,
-  IconSettings,
-  IconTeam,
 } from '@/components/shared/icons'
+import { navigationFor } from '@/lib/auth/navigation'
+import { requireGroupUser } from '@/lib/auth/session'
 import '@/styles/screens/console-admin.css'
 import '@/styles/screens/console-manager.css'
 
 // Admin chrome, from admin.html. Rail active state follows the URL.
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  const user = await requireGroupUser('admin')
+  const navigation = navigationFor(user, 'admin')
   return (
     <div className="r-console">
       <div className="shell">
-        <Rail
-          initials="AC"
-          items={[
-            { key: 'clients', label: 'Clients', href: '/admin/clients', icon: <IconClients /> },
-            { key: 'calendar', label: 'Calendar', href: '/admin/calendar', icon: <IconCalendar /> },
-            { key: 'den', label: "Editors' den", href: '/admin/den', icon: <IconDen />, badge: 4 },
-            { key: 'posting', label: 'Posting schedule', href: '/admin/posting', icon: <IconClock /> },
-            { key: 'planner', label: 'Content planner', href: '/admin/planner', icon: <IconPlanner /> },
-            { key: 'team', label: 'Team', href: '/admin/team', icon: <IconTeam /> },
-          ]}
-          foot={[{ key: 'settings', label: 'Settings', href: '/admin/settings', icon: <IconSettings /> }]}
-        />
+        <Rail initials={user.initials} {...navigation} />
         <main className="main">
           <TopNav
             tabs={[
@@ -41,16 +28,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             ]}
             searchPlaceholder="Search clients or shoots"
             gearLabel="Settings"
+            user={user}
           >
             <button type="button" className="btn-soft">
               <IconDownload />
               Export data
               <span className="chip">XLS</span>
             </button>
-            <button type="button" className="btn-dark">
-              <IconPlus />
-              Add client
-            </button>
+            <AddClientButton />
           </TopNav>
           {children}
         </main>

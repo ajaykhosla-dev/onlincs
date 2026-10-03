@@ -10,6 +10,8 @@ export type MonthDay = {
   /** Makes the day a button. */
   onClick?: () => void
   ariaLabel?: string
+  /** Render children as their own controls, separate from the day button. */
+  interactiveChildren?: boolean
 }
 
 /**
@@ -48,7 +50,12 @@ export function MonthGrid({
       </>
     )
     cells.push(
-      info?.onClick ? (
+      info?.interactiveChildren ? (
+        <div key={d} className={cls}>
+          <button type="button" className="cal-daynum" onClick={info.onClick} aria-label={label}>{d}</button>
+          {info.children}
+        </div>
+      ) : info?.onClick ? (
         <button key={d} type="button" className={cls} onClick={info.onClick} aria-label={label}>
           {body}
         </button>

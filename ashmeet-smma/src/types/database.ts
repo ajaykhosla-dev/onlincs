@@ -63,7 +63,7 @@ export type PlanStatus =
   | 'draft'
   | 'sent_to_client'
   | 'approved'
-  | 'rejected'
+  | 'changes_requested'
 
 // ── SessionStatus ─────────────────────────────────────────────────────────────
 export type SessionStatus =
@@ -265,9 +265,6 @@ export interface ClientScope {
   post_count: number
   carousel_count: number
   story_count: number
-  shoot_count: number
-  bts_reel_count: number
-  total_posts: number
   notes: string | null
   created_at?: string
   updated_at?: string
