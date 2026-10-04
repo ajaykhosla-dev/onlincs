@@ -3,10 +3,10 @@
 > **Read this first in every session.** It is the only handoff between Claude Code sessions.
 > Update it whenever a phase completes, and whenever a session ends mid-phase.
 
-**Last updated:** 3 October 2026
-**Updated by:** Codex (Phase 3 implementation)
-**Current phase:** Phase 3 — in progress; Phase 0, 1 and 2 completion audits remain open
-**Next action:** Verify live create/edit/archive and monthly approval controls, then complete the role matrix. The six-client list and September planner data render in Ashmeet's browser. See `ashmeet-smma/docs/phase-3-audit.md`.
+**Last updated:** 4 October 2026
+**Updated by:** Codex (Phase 5 implementation)
+**Current phase:** Phase 5 — development and live setup complete, browser/media verification pending; Phase 4 verification remains open
+**Next action:** Run Phase 5 real-browser 120MB cut upload, editor-role, playback/seek, version, and library checkpoints. Phase 4 browser checks remain deferred. See `ashmeet-smma/docs/phase-5-audit.md`.
 
 ---
 
@@ -18,8 +18,8 @@
 | 1 | UI conversion — port approved HTML into Next.js components, pixel-identical, static data | 🟡 In progress | — |
 | 2 | Auth, roles, shell — Google OAuth, session, role routing, permission matrix | 🟡 In progress | — |
 | 3 | Clients + Content Planner — the pipeline spine | 🟡 In progress | — |
-| 4 | Shoots + Raw Upload — scheduling, Drive folders, the upload wrapper | ⬜ Not started | — |
-| 5 | Editor pipeline + media — queues, B2 upload, versions, player | ⬜ Not started | — |
+| 4 | Shoots + Raw Upload — scheduling, Drive folders, the upload wrapper | 🟡 In progress | — |
+| 5 | Editor pipeline + media — queues, B2 upload, versions, player | 🟡 In progress | — |
 | 6 | Review + approval — comments, voice notes, magic links | ⬜ Not started | — |
 | 7 | Posting schedule — grid, captions, downloads, mark posted | ⬜ Not started | — |
 | 8 | Notifications — web push, cron staleness alerts | ⬜ Not started | — |
@@ -34,6 +34,43 @@ Status values: ⬜ Not started · 🟡 In progress · ✅ Complete · ⚠️ Com
 ## Session log
 
 Newest entries at the top. One entry per session.
+
+### 4 Oct 2026 — Phase 5 implementation prepared
+**Phase:** 5 (in progress)
+**Done:** Replaced fixture den, editor queues, and library with live scoped data. Added transactional assignment/reassignment, editor load, direct multipart B2 cut/library upload with retry and cancellation, per-item version completion, status syncing to the latest version, authorized presigned playback, faststart warning, and live library folders. New `008_phase5_editor_media.sql` passed a rollback-only live transaction covering authorization, assignment, two version increments, replay, latest status, and library completion. Temporary B2 multipart/list/abort and ranged-GET checks passed; TypeScript, targeted lint, production build, and 32 existing tests passed. Details in `ashmeet-smma/docs/phase-5-audit.md`.
+**Not done:** Live migration and B2 PUT CORS update are not applied. A signed browser PUT preflight returned 403 because the existing localhost CORS rule only allows GET/HEAD. Real 120MB browser upload, seeking, editor role, and library upload/download checks remain.
+**Deviations:** The B2 CORS rule is prepared by a dry-run-first script that preserves the existing GET/HEAD settings. The existing anonymous isolation test was corrected to accept either a permission error or zero rows under RLS.
+**Carried forward:** Apply the reviewed live migration and CORS rule, then test each Phase 5 checkpoint with real video and editor sessions. Keep Phase 4 unfinished browser checks in its audit.
+
+**Live setup update:** Ashmeet approved both changes. `008_phase5_editor_media.sql` committed in one transaction; a read-only check confirmed RLS, service-role-only RPC grants, and zero active media sessions. B2 rejected an S3 API CORS update because the existing rules were created through the Native API. The same scoped change was applied through B2 Native API, preserving the existing rules. Localhost signed PUT preflight, including `Content-Type`, then passed; two-part upload, range 206, and abort were rerun successfully. Real browser/media checkpoints remain.
+
+### 4 Oct 2026 — Phase 4 live verification continued
+**Phase:** 4 (development complete; verification in progress)
+**Done:** Authenticated cron rejected an unauthenticated call, provisioned five Ashmeet-agency seeded shoots, detected a direct Drive drop, advanced its cursor, and did not duplicate a wrapper-uploaded file. A separate direct-drop test transitioned an eligible shoot/idea to raw uploaded and notified its manager and assigned editor. Temporary invited manager/editor identities passed their live page and role-scoped API checks. A temporary cameraman account rendered the real shoot and seeded pending pages at 390px in headless Edge without horizontal overflow. All temporary identities, assignments, database test records, and Drive test files were cleaned up. Details are in `ashmeet-smma/docs/phase-4-audit.md`.
+**Not done:** Real-browser multi-gigabyte and eight-file/three-idea uploads, tab-close resume, different-size rejection, network-drop recovery, expired-session handling, Google PUT header inspection, touch interaction, and a real editor opening Drive links.
+**Deviations:** Neither active editor appeared as a direct Shared Drive member in the Drive permissions API. Group or inherited access remains unknown.
+**Carried forward:** Finish the remaining browser matrix and verify or provide editor Shared Drive read access before marking Phase 4 complete. The admin upload test page remains until those checks are finished.
+
+### 4 Oct 2026 — Phase 4 implementation prepared
+**Phase:** 4 (in progress)
+**Done:** Built transactional shoot scheduling and many-to-many links; scoped shoot APIs; durable Drive folder provisioning with retry; the sequential direct-to-Google upload queue with resume; live cameraman, admin, and manager calendars; an editor raw-file view; raw arrival and notifications; hourly Drive changes backstop; and admin reconciliation. `006_phase4_shoots.sql` passed a rollback-only live Supabase test for scheduling, cross-manager denial, update/cancel, shared item, and arrival. TypeScript and targeted lint pass. Details are in `ashmeet-smma/docs/phase-4-audit.md`.
+**Not done:** Real browser role and Drive tests, especially multi-gigabyte upload and next-day resume, remain. Hourly production cron needs Vercel Pro or an external scheduler; Hobby permits only daily runs.
+**Deviations:** The app's upload page returns the decrypted session URI only to the authorized uploader, as required for direct browser PUT; `session_uri_enc` never appears in a response. Seeded Drive sync page tokens were placeholders and are cleared by the migration.
+**Carried forward:** Test the complete Phase 4 checkpoint matrix and mark complete only when all checks are green. Editors require Shared Drive read access; cameramen require none.
+
+**Migration update:** Ashmeet approved `006_phase4_shoots.sql`; Codex applied it in one transaction. A read-only live check verified six functions, the folder job table, the upload progress column, zero placeholder sync cursors, and unchanged existing shoot/link counts (7/11). Existing seeded idea folder IDs are placeholders; the folder worker replaces them during provisioning.
+
+**Browser update:** Ashmeet confirmed the live admin calendar, shoot scheduling, and folder provisioning work. A read-only database check found the newly scheduled "Title of Naruto" shoot with one linked idea, a complete folder job, a stored shoot folder ID, and one stored idea subfolder ID. Counts rose from 7/11 to 8/12 shoots/links. Drive UI, cameraman upload/resume, manager/editor roles, and the cron remain to be tested.
+**Drive update:** A read-only Drive API check found both new folders in the configured Shared Drive and confirmed the idea folder is a child of the shoot folder with the expected idea slug. Cameraman upload/resume, manager/editor roles, and the cron remain to be tested.
+**Edit update:** Ashmeet confirmed browser editing works. A read-only Drive API check verified the shoot's new title in the full path `Khanna Jewellers / 2026-10 / 2026-10-22 Title of Sasuke / ci-khannajewellers-002`.
+**Eligibility correction:** The live browser test exposed that a posted Khanna Jewellers idea could be selected for a new shoot. The selector now lists only calendar-approved or already shoot-scheduled ideas. `007_phase4_item_eligibility.sql` adds an insert trigger to enforce the same rule atomically; a rollback-only check accepted approved `ci-34` and rejected posted `ci-15`, then the follow-up migration was applied live. The existing test shoot link was preserved.
+**Add-idea update:** Ashmeet confirmed a second idea appears. A later read-only check found two linked ideas and a completed folder job; Drive has exactly two idea subfolders under one shoot folder. The earlier one-link read occurred before the add finished. The drawer now displays the saved count and a clear add/folder result.
+**Upload test access:** With no invited cameraman account available, Ashmeet requested a temporary admin test page at `/admin/upload-test`. It renders the same upload wrapper; the active-session list now permits the signed-in admin's own sessions. TypeScript, targeted lint, and production build pass. Remove the route after browser upload testing.
+**Upload picker update:** Ashmeet found `Choose clips` disabled during the first admin upload test. The wrapper now requires an explicit shoot and idea choice, marks each shoot folder as ready or pending, and explains the exact condition blocking the picker. TypeScript and targeted lint pass; live clip upload is still unverified.
+**First upload attempt:** Ashmeet confirmed the picker opens, but a small MP4 remained “uploading.” Read-only Supabase inspection found no new session at that point, so no bytes had reached Drive. The wrapper now shows its current upload step, fails known HTTP errors immediately, guards against a no-progress 308 loop, and times out unanswered app API requests after 45 seconds. TypeScript and targeted lint pass. Repeat the browser test and inspect the pending Network result.
+**File-selection fix:** Ashmeet clarified that choosing an MP4 and pressing Open left the queue empty. The handler was reading the browser's live `FileList` in a deferred state updater after resetting the input. It now copies selected files before resetting the input. TypeScript and targeted lint pass; retry the browser queue and actual upload.
+**Small-upload pass:** Ashmeet confirmed `sample-5s.mp4` reached 100% complete in `/admin/upload-test`. Read-only verification found a complete live session at 2,848,208/2,848,208 bytes, one `raw_files` row, and the real Google Drive file of the same size in the correct idea subfolder. This is one small-file pass, not the full Phase 4 self-audit: multi-gigabyte, queue, resume, role screens, cron/backstop, and reconciliation checks remain.
+**Temporary cameraman QA:** At Ashmeet's request, Codex created a disposable invited Auth identity with the cameraman role. Live tests passed for assigned-shoot scoping, `/cameraman/shoots`, admin-route 403, another shoot's upload-session 403, 8 MiB partial upload, resume after a fresh sign-in from Google's byte count, 9 MiB completion, and idempotent completion replay. Verified cleanup restored Harpreet's assignment, removed the QA identity and database records, and moved the QA Drive file to Trash (service account canTrash=true, canDelete=false). A 5 GB browser upload, visual role screens, network-drop and expiry behavior, and cron/backstop remain unverified.
 
 ### 3 Oct 2026 — Phase 3 clients and planner implementation prepared
 **Phase:** 3 (in progress)
