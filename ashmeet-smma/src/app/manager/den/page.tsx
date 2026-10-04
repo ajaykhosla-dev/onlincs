@@ -1,27 +1,9 @@
-import { DenScreen, type DenReview } from '@/components/console/DenScreen'
-import { ScopeBanner } from '@/components/console/ScopeBanner'
-import { teamById } from '@/lib/fixtures/console'
-import { jaspreetDenRows, rootCanalComments } from '@/lib/fixtures/console-screens'
+import { LiveDen } from '@/components/console/LiveDen'
+import { requireGroupUser } from '@/lib/auth/session'
+import { denData } from '@/lib/phase5/data'
 
-const reviews: Record<string, DenReview> = Object.fromEntries(
-  jaspreetDenRows.map((r) => [
-    r.key,
-    {
-      title: r.idea,
-      meta: `${r.clientName} · ${teamById(r.editorId)?.full_name} · version ${r.version}`,
-      comments: r.key === 'rootcanal' ? rootCanalComments : [],
-    },
-  ])
-)
-
-export default function ManagerDenPage() {
-  return (
-    <DenScreen
-      banner={<ScopeBanner>Your clients &mdash; Ramana Dental and Grover Motors only</ScopeBanner>}
-      title="Cuts awaiting your review"
-      intro="One cut needs changes sent back, one is ready for a first look."
-      rows={jaspreetDenRows}
-      reviews={reviews}
-    />
-  )
+export default async function ManagerDenPage() {
+  const user = await requireGroupUser('manager')
+  const data = await denData(user)
+  return <LiveDen {...data} />
 }

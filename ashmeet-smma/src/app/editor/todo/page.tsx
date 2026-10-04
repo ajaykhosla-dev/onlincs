@@ -1,7 +1,9 @@
-import { TodoScreen } from '@/components/editor/TodoScreen'
-import { editorTasks } from '@/lib/fixtures/editor'
+import { LiveQueue } from '@/components/editor/LiveQueue'
+import { requireGroupUser } from '@/lib/auth/session'
+import { editorWork } from '@/lib/phase5/data'
 
-export default function EditorTodoPage() {
-  return <><div style={{ padding: '12px 28px 0' }}><Link href="/editor/raw">View assigned raw footage in Drive →</Link></div><TodoScreen tasks={editorTasks} /></>
+export default async function EditorTodoPage() {
+  const user = await requireGroupUser('editor')
+  const items = (await editorWork(user)).filter((item) => item.status === 'with_editor' && !item.versions.length)
+  return <LiveQueue items={items} mode="todo" name={user.full_name.split(' ')[0]} />
 }
-import Link from 'next/link'

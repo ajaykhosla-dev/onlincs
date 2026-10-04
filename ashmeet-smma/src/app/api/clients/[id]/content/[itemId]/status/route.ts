@@ -13,6 +13,8 @@ export async function POST(request: Request, { params }: Context) {
   if (!user) return unauthorized()
   const body = await parseJsonBody(request, schema)
   if (!body.ok) return body.response
+  if (body.value.toStatus === 'with_editor' || body.value.toStatus === 'cut_submitted')
+    return NextResponse.json({ message: 'Use Editors’ den to assign work and the cut uploader to submit it.' }, { status: 409 })
   const { id, itemId } = await params
   if (!await getClientFor(user, id, 'write')) return forbidden()
   try { return NextResponse.json(await transition(itemId, body.value.toStatus as ContentStatus, user, id)) }

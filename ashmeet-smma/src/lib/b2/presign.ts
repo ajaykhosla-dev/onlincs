@@ -8,6 +8,8 @@ import {
   UploadPartCommand,
   CompleteMultipartUploadCommand,
   AbortMultipartUploadCommand,
+  HeadObjectCommand,
+  ListPartsCommand,
 } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { env } from '@/lib/env'
@@ -44,6 +46,27 @@ export const completeMultipart = (Key: string, UploadId: string, parts: { PartNu
 
 export const abortMultipart = (Key: string, UploadId: string) =>
   b2.send(new AbortMultipartUploadCommand({ Bucket, Key, UploadId }))
+
+export const headObject = (Key: string) => b2.send(new HeadObjectCommand({ Bucket, Key }))
+export const listParts = (Key: string, UploadId: string) =>
+  b2.send(new ListPartsCommand({ Bucket, Key, UploadId, MaxParts: 1000 }))
+
+/** Inspect only the first MiB; the media itself still streams browser -> B2. */
+export async function hasFaststart(Key: string): Promise<boolean | null> {
+  const response = await b2.send(new GetObjectCommand({ Bucket, Key, Range: 'bytes=0-1048575' }))
+  if (!response.Body) return null
+  const bytes = await response.Body.transformToByteArray()
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+  for (let offset = 0; offset + 8 <= bytes.length;) {
+    const size = view.getUint32(offset)
+    const type = String.fromCharCode(...bytes.subarray(offset+4,offset+8))
+    if (type === 'moov') return true
+    if (type === 'mdat') return false
+    if (size < 8 || size > bytes.length-offset) return null
+    offset += size
+  }
+  return null
+}
 
 export const deleteObject = (Key: string) => b2.send(new DeleteObjectCommand({ Bucket, Key }))
 

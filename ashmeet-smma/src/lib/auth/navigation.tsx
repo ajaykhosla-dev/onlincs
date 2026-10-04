@@ -21,6 +21,7 @@ export function navigationFor(user: User, group: WorkspaceGroup): { items: RailI
           { key: 'clients', label: 'Clients', href: '/admin/clients', icon: <IconClients /> },
           { key: 'calendar', label: 'Calendar', href: '/admin/calendar', icon: <IconCalendar /> },
           { key: 'den', label: "Editors' den", href: '/admin/den', icon: <IconDen />, badge: 4 },
+          { key: 'library', label: 'Library', href: '/admin/library', icon: <IconLibrary /> },
           { key: 'posting', label: 'Posting schedule', href: '/admin/posting', icon: <IconClock /> },
           { key: 'planner', label: 'Content planner', href: '/admin/planner', icon: <IconPlanner /> },
           { key: 'team', label: 'Team', href: '/admin/team', icon: <IconTeam /> },

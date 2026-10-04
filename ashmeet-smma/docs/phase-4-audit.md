@@ -1,6 +1,6 @@
 # Phase 4 implementation and verification
 
-Status: in progress. Do not mark Phase 4 complete until the live migration, browser role checks, Drive folder check, and large upload/resume checks pass.
+Status: development complete; live verification in progress. Do not mark Phase 4 complete until the remaining browser upload and editor Drive-access checks pass.
 
 ## Implemented
 
@@ -29,14 +29,17 @@ Status: in progress. Do not mark Phase 4 complete until the live migration, brow
 - Ashmeet confirmed `sample-5s.mp4` reached 100% and `complete` on `/admin/upload-test`. Read-only checks verified the live upload session is complete at 2,848,208/2,848,208 bytes, exactly one `raw_files` row exists for its Drive file ID, and the real Drive file has that size in the correct idea subfolder of the configured Shared Drive. This verifies one small-file path through the admin QA wrapper; the full Phase 4 checkpoint matrix remains open.
 - Ashmeet separately confirmed that the browser upload queue works. The full eight-file, three-idea queue checkpoint is still unverified.
 - A temporary invited Supabase Auth cameraman identity was created for live API QA and removed afterward. Its JWT had the cameraman role; `/api/shoots` returned only its temporarily assigned shoot, `/cameraman/shoots` loaded, `/admin/calendar` redirected to `/403`, and upload session creation for another shoot returned 403. A 9 MiB direct Drive upload sent 8 MiB, queried Google's saved byte count, signed in again, resumed from 8 MiB, completed, and replayed completion without a duplicate `raw_files` row. The original shoot assignment and arrival timestamp were restored, the QA Auth/workspace user, session, and database file row were deleted, and the QA Drive file was moved to Trash because the service account can trash but cannot permanently delete shared-drive files. This verifies the role and resumable-session API mechanics, not a 5 GB browser upload or visual cameraman screen behavior.
+- The live cron endpoint rejected an unauthenticated request with 401. An authenticated run provisioned five seeded shoots in Ashmeet's agency; the one remaining unprovisioned shoot belongs to another agency. After a temporary direct file drop into a real idea folder, the changes poll advanced its cursor and created one raw-file record. A second poll did not duplicate it, and the existing wrapper-uploaded sample file remained a single record. The temporary file and row were cleaned up.
+- A separate live direct-drop test used an eligible assigned-editor idea. The cron changed the linked shoot and eligible idea to `raw_uploaded`, wrote arrival and content-status activity, and notified the assigned brand manager and editor. The test restored statuses and removed its temporary file, row, logs, and notifications afterward.
+- Temporary invited manager and editor identities verified their live pages and scope: manager calendar and own shoots loaded, a different client's shoot returned 403, and admin route access was blocked; editor raw page showed the real `sample-5s.mp4` link, assigned shoot scope worked, and unrelated shoot and manager-page access were blocked. The identities and changed assignments were removed afterward.
+- Headless Edge at 390px rendered the real cameraman shoot drawer for `Title of Sasuke` and showed the seeded `Basil Cafe` pending shoot. Both pages had a 390px document/body width with no horizontal overflow. The temporary cameraman identity and both shoot assignments were cleaned up. This verifies layout and content rendering, not touch interaction or the browser upload queue.
+- Read-only Drive permissions inspection did not find either active Ashmeet-agency editor as a direct Shared Drive member. Group or inherited access was not resolved, so opening the file/folder links as an editor remains unverified.
 
 ## Still needs live verification
 
-- Migration `006_phase4_shoots.sql` was applied to live Supabase on 4 October 2026. Read-only verification found all six functions, the folder-job table, the upload progress column, and zero fake Drive cursors. Verify the manager and cameraman screens.
-- Upload a multi-gigabyte file and an eight-file cross-idea queue through the real wrapper. Close and reopen a tab, re-pick the same file, test a different size, a network drop, and an expired session. Inspect browser Network for direct Google PUTs without Authorization.
-- Run the authenticated cron against a direct Drive drop, check cursor advancement and no duplicate for a wrapper-uploaded file. Confirm manager/editor notifications.
-- Confirm assigned editor can open files and folders with Shared Drive read access, and unassigned editor receives 403.
-- Check 390px cameraman layout and seeded pending shoot in a browser.
+- Upload a multi-gigabyte file and an eight-file, three-idea queue through the real browser wrapper. Close and reopen a tab, re-pick the same file, test a different-size file, a network drop, and an expired session. Inspect browser Network for direct Google PUTs without an Authorization header. The 9 MiB API-level resume and small browser upload do not cover these checkpoints.
+- Sign in as an assigned editor with a real Google identity and open the file and folder links. Grant or otherwise verify Shared Drive read access if needed. The temporary editor's route and API 403 checks passed, but its synthetic account cannot establish real Google Drive access.
+- Exercise the cameraman UI by touch at a 390px viewport, including opening the seeded pending shoot and the uploader. Headless rendering and width checks passed.
 
 The resumable session URI is a bearer capability returned only to the authenticated uploader so the browser can PUT directly to Google. The encrypted `session_uri_enc` field is never returned.
 
