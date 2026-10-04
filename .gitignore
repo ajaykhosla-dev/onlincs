@@ -1,0 +1,6 @@
+# never commit credentials
+*-[0-9a-f]*.json
+**/service-account*.json
+.env
+.env.*
+!.env.example
