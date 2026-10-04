@@ -63,6 +63,7 @@ textarea { resize: vertical; }
   width: 122px;
   flex-shrink: 0;
   position: sticky;
+  z-index: 10;
   top: 0;
   height: 100vh;
   display: flex;
@@ -80,7 +81,7 @@ textarea { resize: vertical; }
   width: 116px;
   height: 100vh;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 22px 50px rgba(108, 92, 231, .28);
 }
 .rail-inner::after {
@@ -163,7 +164,8 @@ textarea { resize: vertical; }
   transition: .15s;
   z-index: 40;
 }
-.rail-btn:hover .tip { opacity: 1; transform: translateX(0); }
+.rail-btn:hover .tip,
+.rail-btn:focus-visible .tip { opacity: 1; transform: translateX(0); }
 
 /* ========== MAIN AREA ========== */
 .main {

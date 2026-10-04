@@ -4,6 +4,7 @@ import { decrypt, encrypt } from '@/lib/crypto'
 import { canAccess } from '@/lib/auth/can-access'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { drive, serviceAccountToken } from '@/lib/drive/auth'
+import { env } from '@/lib/env'
 import type { User } from '@/types/database'
 
 const INIT_URL =
@@ -55,6 +56,9 @@ export async function createUploadSession(
 ): Promise<Result<{ sessionId: string; sessionUri: string; expiresAt: string }>> {
   const { data: shoot } = await supabaseAdmin.from('shoots').select('id, agency_id, cameraman_id, drive_folder_id').eq('id', p.shootId).maybeSingle()
   if (!shoot) return fail({ code: 'not_found', message: 'Shoot not found' })
+  const { data: driveState } = await supabaseAdmin.from('drive_sync_state').select('shared_drive_id').eq('agency_id', shoot.agency_id).maybeSingle()
+  if (driveState?.shared_drive_id !== env.GOOGLE_SHARED_DRIVE_ID)
+    return fail({ code: 'no_folder', message: 'This workspace has no configured Shared Drive' })
 
   // The idea must actually be linked to this shoot (shoot_items is the join).
   const { data: link } = await supabaseAdmin
@@ -69,8 +73,8 @@ export async function createUploadSession(
     return fail({ code: 'forbidden', message: 'You are not assigned to this shoot' })
   }
 
-  const folderId = link.drive_subfolder_id ?? shoot.drive_folder_id
-  if (!folderId) return fail({ code: 'no_folder', message: 'No Drive folder has been provisioned for this shoot yet' })
+  const folderId = link.drive_subfolder_id
+  if (!folderId) return fail({ code: 'no_folder', message: 'This idea folder is still being provisioned' })
 
   const token = await serviceAccountToken()
   // `Origin` binds the session to the app origin so Google answers the browser's later
@@ -102,6 +106,7 @@ export async function createUploadSession(
     mime_type: p.mimeType,
     session_uri_enc: encrypt(sessionUri),
     bytes_received: 0,
+    last_progress_at: new Date().toISOString(),
     status: 'active',
     expires_at: expiresAt,
     started_by: user.id,
@@ -135,7 +140,7 @@ export async function findActiveSession(
 export async function getProgress(
   user: User,
   sessionId: string
-): Promise<Result<{ sessionUri: string; bytesReceived: number; totalBytes: number; status: SessionRow['status'] }>> {
+): Promise<Result<{ sessionUri: string; bytesReceived: number; totalBytes: number; status: SessionRow['status']; completedDriveFileId?: string }>> {
   const loaded = await loadOwnedSession(user, sessionId)
   if (!loaded.ok) return loaded
   const { row } = loaded.value
@@ -158,17 +163,21 @@ export async function getProgress(
   if (res.status === 404 || res.status === 410) return markExpired()
 
   let received = 0
+  let completedDriveFileId: string | undefined
   if (res.status === 308) {
     const m = res.headers.get('Range')?.match(/bytes=0-(\d+)/)
     received = m ? Number(m[1]) + 1 : 0
   } else if (res.ok) {
     received = row.file_size_bytes // Google already has the whole file
+    completedDriveFileId = ((await res.json().catch(() => null)) as { id?: string } | null)?.id
   } else {
     return fail({ code: 'upstream', message: `Drive progress query failed (${res.status})` })
   }
 
-  await supabaseAdmin.from('upload_sessions').update({ bytes_received: received }).eq('id', row.id)
-  return { ok: true, value: { sessionUri, bytesReceived: received, totalBytes: row.file_size_bytes, status: 'active' } }
+  await supabaseAdmin.from('upload_sessions').update(received > row.bytes_received
+    ? { bytes_received: received, last_progress_at: new Date().toISOString() }
+    : { bytes_received: received }).eq('id', row.id)
+  return { ok: true, value: { sessionUri, bytesReceived: received, totalBytes: row.file_size_bytes, status: 'active', completedDriveFileId } }
 }
 
 /**
@@ -187,6 +196,10 @@ export async function completeUpload(user: User, sessionId: string, driveFileId:
   if (!file?.id) return fail({ code: 'not_found', message: 'That file was not found in Drive' })
   if (Number(file.size) !== Number(row.file_size_bytes)) {
     return fail({ code: 'upstream', message: 'The Drive file size does not match the upload' })
+  }
+  const { data: ideaFolder } = await supabaseAdmin.from('shoot_items').select('drive_subfolder_id').eq('shoot_id', row.shoot_id).eq('content_item_id', row.content_item_id).single()
+  if (!ideaFolder?.drive_subfolder_id || !file.parents?.includes(ideaFolder.drive_subfolder_id)) {
+    return fail({ code: 'forbidden', message: 'The Drive file is not in this idea folder' })
   }
 
   const { data: inserted } = await supabaseAdmin
@@ -213,7 +226,9 @@ export async function completeUpload(user: User, sessionId: string, driveFileId:
   if (!rawFile) return fail({ code: 'upstream', message: 'Could not record the uploaded file' })
 
   const now = new Date().toISOString()
-  await supabaseAdmin.from('upload_sessions').update({ status: 'complete', bytes_received: row.file_size_bytes, completed_at: now }).eq('id', row.id)
+  await supabaseAdmin.from('upload_sessions').update({ status: 'complete', bytes_received: row.file_size_bytes, completed_at: now, last_progress_at: now }).eq('id', row.id)
   await supabaseAdmin.from('shoot_items').update({ raw_uploaded_at: now, marked_by: user.id }).eq('shoot_id', row.shoot_id).eq('content_item_id', row.content_item_id)
+  const { error: arrivalError } = await supabaseAdmin.rpc('phase4_arrival', { p_shoot_id: row.shoot_id, p_actor_id: user.id, p_source: 'wrapper' })
+  if (arrivalError) return fail({ code: 'upstream', message: 'Upload recorded, but shoot arrival needs reconciliation' })
   return { ok: true, value: { rawFileId: rawFile.id, driveLink: rawFile.drive_link } }
 }

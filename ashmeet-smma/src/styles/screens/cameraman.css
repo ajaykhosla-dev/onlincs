@@ -211,6 +211,7 @@
 .r-cam .chev{width:20px;height:20px;color:var(--muted);flex-shrink:0}
 .r-cam #screen-pending{padding:22px 18px}
 @media (min-width:761px){ .r-cam #screen-pending{padding:28px} }
+.r-cam #screen-upload{overflow-y:auto;flex:1;min-height:0;width:100%}
 
 /* ---- Deviation from cameraman.html (Phase 1, checkpoint 7): on mobile, readable UI text is at least 15px.
    The time-grid micro-labels (hour labels, event captions, weekday heads) keep the prototype's sizes; see progress.md. ---- */

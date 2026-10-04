@@ -40,8 +40,8 @@ export type ContentStatus =
 // ── ShootState ────────────────────────────────────────────────────────────────
 export type ShootState =
   | 'scheduled'
-  | 'in_progress'
   | 'completed'
+  | 'raw_uploaded'
   | 'cancelled'
 
 // ── VersionStatus ─────────────────────────────────────────────────────────────

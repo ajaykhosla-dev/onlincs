@@ -1,11 +1,11 @@
 import { Suspense } from 'react'
-import { ShootsCalendar } from '@/components/cameraman/ShootsCalendar'
+import { LiveShootsCalendar } from '@/components/cameraman/LiveShootsCalendar'
 
 export default function CameramanShootsPage() {
   // useSearchParams (the ?shoot= deep link from Pending uploads) needs a Suspense boundary
   return (
     <Suspense>
-      <ShootsCalendar />
+      <LiveShootsCalendar />
     </Suspense>
   )
 }
