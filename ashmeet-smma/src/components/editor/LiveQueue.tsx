@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { CommentsPanel } from '@/components/review/CommentsPanel'
 import { MediaPlayer } from './MediaPlayer'
 import { MultipartUpload } from './MultipartUpload'
 import type { EditorWork } from '@/lib/phase5/data'
@@ -13,8 +14,9 @@ function urgency(deadline: string | null) {
   return new Date(`${deadline}T12:00:00`).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})
 }
 
-export function LiveQueue({ items, mode, name }: { items: EditorWork[]; mode: 'todo'|'redo'; name: string }) {
+export function LiveQueue({ items, mode, name, userId }: { items: EditorWork[]; mode: 'todo'|'redo'; name: string; userId: string }) {
   const [selected,setSelected] = useState<string | null>(null)
+  const previous = useRef<HTMLVideoElement>(null)
   const item = items.find((entry) => entry.id === selected)
   return <section style={{ padding:28,overflowY:'auto' }}>
     <header className="hero-row" style={{ gridTemplateColumns:'1fr' }}><div className="hello"><h1>{mode === 'todo' ? `Hi ${name}!` : 'Re do'}</h1>
@@ -39,10 +41,10 @@ export function LiveQueue({ items, mode, name }: { items: EditorWork[]; mode: 't
         </>}
         {mode === 'redo' && item.versions.length > 0 && <><h3>Previous cut</h3>
           <p>Version {item.versions.at(-1)!.version} · {item.versions.at(-1)!.status.replaceAll('_',' ')}</p>
-          <MediaPlayer versionId={item.versions.at(-1)!.id} title={`version ${item.versions.at(-1)!.version}`} />
-          <h3>Change requests</h3>{item.comments.length ? item.comments.map((comment) => <div key={comment.id} className="comment">
-            <div className="comment-head"><span className="comment-ts">{comment.timestamp_start == null ? 'General' : `${Math.floor(comment.timestamp_start/60)}:${String(Math.floor(comment.timestamp_start%60)).padStart(2,'0')}`}</span>
-              <span className="comment-author">{comment.author_label}</span></div><div className="comment-text">{comment.body}</div></div>) : <p>No written change requests are attached to the previous version.</p>}</>}
+          <MediaPlayer key={item.versions.at(-1)!.id} versionId={item.versions.at(-1)!.id} title={`version ${item.versions.at(-1)!.version}`} videoRef={previous} />
+          <h3>Change requests</h3>
+          <p>{item.status === 'client_changes' ? 'The client asked for changes. Their words are shown exactly as written.' : 'Work through every open comment. Tap a time to jump to that moment.'}</p>
+          <CommentsPanel key={item.versions.at(-1)!.id} versionId={item.versions.at(-1)!.id} videoRef={previous} canWrite={false} canRetry={false} currentUserId={userId} /></>}
         <MultipartUpload target={{ kind:'cut',itemId:item.id }} />
       </section><aside className="side"><section className="panel"><h3 className="card-title">Version history</h3>
         {item.versions.length ? [...item.versions].reverse().map((version) => <p key={version.id}>v{version.version} · {version.status.replaceAll('_',' ')} · {(version.file_size_bytes/1048576).toFixed(1)} MB</p>) : <p>First cut pending.</p>}

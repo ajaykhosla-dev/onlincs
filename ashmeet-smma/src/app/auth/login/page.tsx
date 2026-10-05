@@ -16,6 +16,8 @@ export default async function LoginPage({ searchParams }: { searchParams?: Promi
     ? "This account isn't part of a workspace yet. Ask your agency owner for an invite."
     : params?.error === 'workspace_unavailable'
       ? 'Workspace sign-in is temporarily unavailable. Please try again.'
+    : params?.error === 'suspended'
+      ? 'This workspace has been suspended. Contact RapidArc AI to restore access. Your data is safe.'
     : params?.expired === '1'
       ? 'Your session expired, please sign in again.'
       : null

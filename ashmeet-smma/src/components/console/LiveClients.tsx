@@ -29,6 +29,7 @@ export function LiveClients({ admin }: { admin: boolean }) {
     finally { setLoading(false) }
   }, [month])
   useEffect(() => { queueMicrotask(() => void load()) }, [load])
+  useEffect(() => { const url = new URL(window.location.href); url.searchParams.set('month', month); window.history.replaceState(null, '', url) }, [month])
   useEffect(() => {
     if (!admin) return
     const openAdd = () => { setEditing(null); setForm({ ...empty, manager_id: managers[0]?.id ?? '' }); setOpen(true) }

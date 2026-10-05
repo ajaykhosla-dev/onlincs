@@ -1,13 +1,7 @@
-import { PostingScreen } from '@/components/console/PostingScreen'
-import { postItems } from '@/lib/fixtures/console-screens'
+import { LivePosting } from '@/components/console/LivePosting'
+import { requireGroupUser } from '@/lib/auth/session'
 
-export default function AdminPostingPage() {
-  return (
-    <PostingScreen
-      intro="What's going out, when, and in what format — across every client."
-      posts={postItems}
-      initialKey="service"
-      panelTone="sky"
-    />
-  )
+export default async function AdminPostingPage() {
+  await requireGroupUser('admin')
+  return <LivePosting intro="What's going out, when, and in what format — across every client." />
 }

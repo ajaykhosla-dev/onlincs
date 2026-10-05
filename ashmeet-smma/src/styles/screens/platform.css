@@ -1,0 +1,39 @@
+/* The platform plane: deliberately unlike the agency product (dark, amber accent, PLATFORM badge). */
+.platform-root{min-height:100vh;background:#0F1020;color:#E9E9F5;font-family:var(--font)}
+.platform-bar{display:flex;align-items:center;gap:22px;padding:12px 22px;background:#171934;border-bottom:3px solid #F5A524}
+.platform-brand{display:flex;align-items:center;gap:10px}
+.platform-badge{padding:3px 9px;border-radius:6px;background:#F5A524;color:#1A1200;font:800 11px var(--font);letter-spacing:.08em}
+.platform-bar nav{flex:1}
+.platform-bar a{color:#C9CBEA;text-decoration:none;font-weight:700;font-size:14px}
+.platform-bar a:hover{color:#fff}
+.platform-user{display:flex;align-items:center;gap:12px;font-size:13px;color:#B8BAD8}
+.platform-user button{border:1px solid #3A3D6B;background:transparent;color:#E9E9F5;border-radius:8px;padding:6px 12px;cursor:pointer;font:700 12px var(--font)}
+.platform-main{max-width:1100px;margin:0 auto;padding:26px 18px 60px;display:grid;gap:18px}
+.platform-main h1{margin:0;font-size:26px}
+.platform-main h2{margin:0 0 10px;font-size:17px}
+.p-card{background:#1B1D3E;border:1px solid #2C2F5C;border-radius:16px;padding:20px}
+.p-muted{color:#9EA1C9;font-size:13px;line-height:1.55;margin:0}
+.p-table{width:100%;border-collapse:collapse;font-size:13.5px}
+.p-table th{text-align:left;color:#9EA1C9;font-weight:700;padding:8px 10px;border-bottom:1px solid #2C2F5C}
+.p-table td{padding:10px;border-bottom:1px solid #25285A;vertical-align:top}
+.p-table a{color:#F5C16A;font-weight:700;text-decoration:none}
+.p-field{display:grid;gap:5px;margin-bottom:12px;font-size:13px;font-weight:700;color:#C9CBEA}
+.p-field input,.p-field textarea,.p-field select{width:100%;background:#12132B;border:1px solid #3A3D6B;border-radius:10px;padding:10px;color:#fff;font:500 14px var(--font)}
+.p-field textarea{min-height:90px}
+.p-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:0 18px}
+.p-btn{border:0;border-radius:10px;padding:10px 16px;background:#F5A524;color:#1A1200;font:800 13px var(--font);cursor:pointer}
+.p-btn.ghost{background:transparent;border:1px solid #3A3D6B;color:#E9E9F5}
+.p-btn.danger{background:#E5484D;color:#fff}
+.p-btn:disabled{opacity:.5;cursor:not-allowed}
+.p-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.p-pill{display:inline-block;padding:2px 9px;border-radius:99px;font:800 11px var(--font);background:#2C2F5C;color:#C9CBEA}
+.p-pill.ok{background:#12351f;color:#7BE0A4}.p-pill.bad{background:#47191c;color:#FF9DA1}.p-pill.warn{background:#41300c;color:#F5C16A}
+.p-error{color:#FF9DA1;font-size:13px;font-weight:600;margin:6px 0 0}
+.p-ok{color:#7BE0A4;font-size:13px;font-weight:600;margin:6px 0 0}
+.p-step{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid #25285A;font-size:13px}
+.p-qr{background:#fff;border-radius:12px;padding:10px;width:fit-content}
+.p-qr img{display:block;width:200px;height:200px}
+.support-banner{position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:10px 18px;background:#F5A524;color:#1A1200;font:700 13.5px var(--font);border-bottom:3px solid #1A1200}
+.support-banner form{margin:0}
+.support-banner button{border:0;border-radius:8px;padding:7px 14px;background:#1A1200;color:#F5A524;font:800 12.5px var(--font);cursor:pointer}
+.support-banner .sb-ghost{background:transparent;color:#1A1200;border:2px solid #1A1200}

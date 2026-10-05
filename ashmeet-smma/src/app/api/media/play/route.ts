@@ -3,6 +3,7 @@ import { getCurrentUser } from '@/lib/auth/current-user'
 import { forbidden, unauthorized } from '@/lib/api'
 import { hasFaststart, headObject, presignGet } from '@/lib/b2/presign'
 import { accessibleLibraryClients } from '@/lib/phase5/data'
+import { versionContext } from '@/lib/phase6/review'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 
 export async function GET(request: Request) {
@@ -14,15 +15,10 @@ export async function GET(request: Request) {
   if (!!versionId === !!assetId) return NextResponse.json({ message: 'Choose one media item' },{ status: 400 })
   let key: string | undefined
   if (versionId) {
-    const { data: version } = await supabaseAdmin.from('deliverable_versions').select('agency_id,content_item_id,b2_key').eq('id',versionId).maybeSingle()
-    if (!version || version.agency_id !== user.agency_id) return forbidden()
-    const { data: item } = await supabaseAdmin.from('content_items').select('client_id,assigned_editor_id').eq('id',version.content_item_id).maybeSingle()
-    if (!item) return forbidden()
-    if (user.role === 'editor' && item.assigned_editor_id !== user.id) return forbidden()
-    if (user.role === 'brand_manager') {
-      const { data: client } = await supabaseAdmin.from('clients').select('manager_id').eq('id',item.client_id).maybeSingle()
-      if (client?.manager_id !== user.id) return forbidden()
-    } else if (!['admin','editor'].includes(user.role)) return forbidden()
+    // One authorization function: admin, the client's brand manager, or the assigned editor (canAccess on the cut)
+    const context = await versionContext(user,versionId,'read')
+    if (!context) return forbidden()
+    const version = context.version
     key = version.b2_key
   } else {
     const { data: asset } = await supabaseAdmin.from('library_assets').select('agency_id,client_id,b2_key').eq('id',assetId!).maybeSingle()

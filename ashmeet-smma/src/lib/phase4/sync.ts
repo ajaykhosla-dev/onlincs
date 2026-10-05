@@ -1,9 +1,9 @@
 import 'server-only'
 import { randomUUID } from 'node:crypto'
-import { drive } from '@/lib/drive/auth'
-import { env } from '@/lib/env'
+import { driveFor, type DriveContext } from '@/lib/integrations/credentials'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { provisionShoot } from './provision'
+import { pushAfterResponse } from '@/lib/push/send'
 
 type DriveFile = { id?: string | null; name?: string | null; size?: string | null; mimeType?: string | null; webViewLink?: string | null; parents?: string[] | null; trashed?: boolean | null }
 
@@ -22,13 +22,31 @@ async function record(file: DriveFile, folders: Map<string, { shoot_id: string; 
   if (markError) throw markError
   const { error: arrivalError } = await supabaseAdmin.rpc('phase4_arrival', { p_shoot_id: match.shoot_id, p_actor_id: null, p_source: 'drive_sync' })
   if (arrivalError) throw arrivalError
+  pushAfterResponse()
   return true
 }
 
-/** Hourly safety net. Cursor only advances after all changed files on a page are recorded. */
+type SyncState = { agency_id: string; shared_drive_id: string; page_token: string | null }
+
+/** Hourly safety net for every agency that has Drive configured. Each agency is synced with its own credentials. */
 export async function runPhase4Sync() {
-  const { data: state, error: stateError } = await supabaseAdmin.from('drive_sync_state').select('*').eq('shared_drive_id', env.GOOGLE_SHARED_DRIVE_ID).single()
-  if (stateError || !state) throw new Error('Drive sync state is missing')
+  const { data: states, error } = await supabaseAdmin.from('drive_sync_state').select('agency_id,shared_drive_id,page_token')
+  if (error) throw error
+  const total = { detected: 0, folderJobs: 0, initialized: false, agencies: 0 }
+  for (const state of (states ?? []) as SyncState[]) {
+    const ctx = await driveFor(state.agency_id)
+    if (!ctx || ctx.driveId !== state.shared_drive_id) continue
+    try {
+      const result = await syncAgency(state, ctx)
+      total.detected += result.detected; total.folderJobs += result.folderJobs; total.initialized ||= result.initialized; total.agencies++
+    } catch (cause) { console.error('Drive sync failed for an agency', state.agency_id, cause instanceof Error ? cause.message : cause) }
+  }
+  if (!total.agencies) throw new Error('Drive sync state is missing')
+  return total
+}
+
+async function syncAgency(state: SyncState, ctx: DriveContext) {
+  const { drive } = ctx
   const { data: unprovisioned, error: shootError } = await supabaseAdmin.from('shoots').select('id,agency_id').eq('agency_id', state.agency_id).is('drive_folder_id', null).neq('status', 'cancelled')
   if (shootError) throw shootError
   for (const shoot of unprovisioned ?? []) {
@@ -55,13 +73,13 @@ export async function runPhase4Sync() {
   let detected = 0
   if (!state.page_token) {
     // First run also scans current idea folders so existing manually placed files are not lost.
-    const initial = await drive.changes.getStartPageToken({ driveId: env.GOOGLE_SHARED_DRIVE_ID, supportsAllDrives: true })
+    const initial = await drive.changes.getStartPageToken({ driveId: ctx.driveId, supportsAllDrives: true })
     if (!initial.data.startPageToken) throw new Error('Drive did not provide a start page token')
     for (const folderId of folders.keys()) {
       let pageToken: string | undefined
       do {
         const page = await drive.files.list({ q: `'${folderId}' in parents and trashed=false`, fields: 'nextPageToken,files(id,name,size,mimeType,webViewLink,parents,trashed)',
-          pageSize: 1000, pageToken, corpora: 'drive', driveId: env.GOOGLE_SHARED_DRIVE_ID, includeItemsFromAllDrives: true, supportsAllDrives: true })
+          pageSize: 1000, pageToken, corpora: 'drive', driveId: ctx.driveId, includeItemsFromAllDrives: true, supportsAllDrives: true })
         for (const file of page.data.files ?? []) if (await record(file, folders)) detected++
         pageToken = page.data.nextPageToken ?? undefined
       } while (pageToken)
@@ -72,7 +90,7 @@ export async function runPhase4Sync() {
   }
   let pageToken = state.page_token
   do {
-    const page = await drive.changes.list({ pageToken, driveId: env.GOOGLE_SHARED_DRIVE_ID, supportsAllDrives: true,
+    const page = await drive.changes.list({ pageToken, driveId: ctx.driveId, supportsAllDrives: true,
       includeItemsFromAllDrives: true, fields: 'nextPageToken,newStartPageToken,changes(fileId,removed,file(id,name,size,mimeType,webViewLink,parents,trashed))', pageSize: 1000 })
     for (const change of page.data.changes ?? []) if (!change.removed && change.file && await record(change.file, folders)) detected++
     const next = page.data.nextPageToken ?? page.data.newStartPageToken

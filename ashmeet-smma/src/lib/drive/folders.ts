@@ -1,29 +1,30 @@
 import 'server-only'
-import { env } from '@/lib/env'
-import { drive } from '@/lib/drive/auth'
+import type { DriveContext } from '@/lib/integrations/credentials'
+import { withRetry } from '@/lib/retry'
 
 const FOLDER = 'application/vnd.google-apps.folder'
 const esc = (s: string) => s.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
 
 /** Find or create a folder under `parentId` (the Shared Drive root when null). */
-export async function ensureFolder(name: string, parentId: string | null): Promise<string> {
-  const parent = parentId ?? env.GOOGLE_SHARED_DRIVE_ID
-  const found = await drive.files.list({
+export async function ensureFolder(ctx: DriveContext, name: string, parentId: string | null): Promise<string> {
+  const { drive } = ctx
+  const parent = parentId ?? ctx.driveId
+  const found = await withRetry(() => drive.files.list({
     q: `name='${esc(name)}' and '${parent}' in parents and mimeType='${FOLDER}' and trashed=false`,
     fields: 'files(id)',
     supportsAllDrives: true,
     includeItemsFromAllDrives: true,
     corpora: 'drive',
-    driveId: env.GOOGLE_SHARED_DRIVE_ID,
-  })
+    driveId: ctx.driveId,
+  }), { service: 'Google Drive' })
   const existing = found.data.files?.[0]?.id
   if (existing) return existing
 
-  const created = await drive.files.create({
+  const created = await withRetry(() => drive.files.create({
     requestBody: { name, mimeType: FOLDER, parents: [parent] },
     fields: 'id',
     supportsAllDrives: true,
-  })
+  }), { service: 'Google Drive' })
   if (!created.data.id) throw new Error(`Failed to create Drive folder: ${name}`)
   return created.data.id
 }
@@ -34,16 +35,16 @@ export const folderLink = (id: string) => `https://drive.google.com/drive/folder
  * Provision `Client / YYYY-MM / YYYY-MM-DD Shoot Title / idea-slug`.
  * Returns every level so callers can persist the shoot folder and the per-idea subfolder.
  */
-export async function provisionShootFolder(params: {
+export async function provisionShootFolder(ctx: DriveContext, params: {
   clientName: string
   month: string // "2026-09"
   shootTitle: string // "2026-09-22 Ramana Dental"
   ideaSlug: string
 }) {
-  const client = await ensureFolder(params.clientName, null)
-  const month = await ensureFolder(params.month, client)
-  const shoot = await ensureFolder(params.shootTitle, month)
-  const idea = await ensureFolder(params.ideaSlug, shoot)
+  const client = await ensureFolder(ctx, params.clientName, null)
+  const month = await ensureFolder(ctx, params.month, client)
+  const shoot = await ensureFolder(ctx, params.shootTitle, month)
+  const idea = await ensureFolder(ctx, params.ideaSlug, shoot)
   return {
     clientFolderId: client,
     shootFolderId: shoot,

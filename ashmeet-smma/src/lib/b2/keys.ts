@@ -10,8 +10,8 @@ export const verifyKey = () => `__verify/phase0-${Date.now()}.bin`
 export const cutKey = (agencyId: string, contentItemId: string, version: number, ext = 'mp4') =>
   `${agencyId}/cuts/${contentItemId}/v${version}.${safe(ext)}`
 
-export const voiceNoteKey = (agencyId: string, versionId: string, commentId: string) =>
-  `${agencyId}/voice-notes/${versionId}/${commentId}.webm`
+export const voiceNoteKey = (agencyId: string, versionId: string, commentId: string, ext: "webm" | "mp4" = "webm") =>
+  `${agencyId}/voice-notes/${versionId}/${commentId}.${ext}`
 
 export const libraryKey = (agencyId: string, clientId: string, folder: string, fileName: string) =>
   `${agencyId}/library/${clientId}/${safe(folder)}/${safe(fileName)}`

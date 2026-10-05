@@ -1,0 +1,28 @@
+/* Client approval page: public, one deliverable, mobile first. */
+.approve-page{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px 16px 40px;background:var(--page);color:var(--ink);font-family:var(--font)}
+.approve-card{width:100%;max-width:560px;background:var(--surface);border-radius:22px;box-shadow:var(--shadow-card);padding:20px 18px}
+.approve-brand{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--violet-deep)}
+.approve-card h1{margin:6px 0 4px;font-size:22px;line-height:1.25;overflow-wrap:anywhere}
+.approve-sub{margin:0 0 16px;color:var(--ink-soft);font-size:14px;line-height:1.55}
+.approve-video{width:100%;aspect-ratio:9/16;max-height:62vh;background:#111;border-radius:14px;display:block;object-fit:contain}
+.approve-video-wrap{display:grid;place-items:center;background:#111;border-radius:14px;min-height:200px}
+.approve-actions{display:grid;gap:10px;margin-top:18px}
+.approve-btn{min-height:50px;border:0;border-radius:14px;font:800 15px var(--font);cursor:pointer;padding:0 18px}
+.approve-btn:disabled{opacity:.55;cursor:not-allowed}
+.approve-btn.primary{background:var(--navy);color:#fff}
+.approve-btn.secondary{background:var(--lavender);color:var(--violet-deep)}
+.approve-field{display:grid;gap:6px;margin-top:14px;font-size:13px;font-weight:700}
+.approve-field textarea,.approve-field input{width:100%;border:1.5px solid #D9D9EE;border-radius:12px;padding:12px;font:500 16px var(--font);color:var(--ink);background:#fff}
+.approve-field textarea{min-height:130px;resize:vertical}
+.approve-field input.pin{letter-spacing:.5em;text-align:center;font-size:24px;font-weight:800}
+.approve-error{margin:10px 0 0;color:var(--pink-ink);font-size:14px;font-weight:600}
+.approve-note{margin:10px 0 0;color:var(--amber-ink);font-size:13px}
+.approve-notice{text-align:center;padding:12px 4px}
+.approve-notice .glyph{display:grid;place-items:center;width:54px;height:54px;margin:0 auto 14px;border-radius:50%;font-size:26px;font-weight:800}
+.approve-notice .glyph.ok{background:var(--mint);color:var(--mint-ink)}
+.approve-notice .glyph.warn{background:var(--amber);color:var(--amber-ink)}
+.approve-notice .glyph.bad{background:var(--pink);color:var(--pink-ink)}
+.approve-notice h1{font-size:21px}
+.approve-notice p{margin:8px 0 0;color:var(--ink-soft);line-height:1.6;font-size:15px}
+.approve-card:focus-within{outline:none}
+.approve-btn:focus-visible,.approve-field input:focus-visible,.approve-field textarea:focus-visible{outline:3px solid var(--violet);outline-offset:2px}

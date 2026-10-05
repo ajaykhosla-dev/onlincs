@@ -230,3 +230,52 @@ test('workspace admins cannot reassign an Auth identity link', async () => {
     assert.ok('error' in result, 'Auth identity reassignment must be rejected')
   })
 })
+
+// ── Phase 11: platform tables and multi-tenant journeys ──────────────────────────────────────
+test('platform-only tables are unreadable by every API role: credentials, support sessions, alert state, link views', async () => {
+  for (const role of Object.keys(ROLES)) {
+    await as(ROLES[role], async () => {
+      for (const table of ['agency_integrations', 'support_sessions', 'alert_state', 'approval_link_views']) {
+        const result = await tryQuery(`select 1 from ${table} limit 1`)
+        assert.ok('error' in result ? result.error === INSUFFICIENT_PRIVILEGE : result.rows.length === 0, `${role} read ${table}`)
+      }
+    })
+  }
+})
+
+test('an agency admin sees the platform audit trail of their own agency and never another agency\'s', async () => {
+  const setup = async () => {
+    await db.query(`insert into activity_log(id,agency_id,actor_id,actor_type,entity_type,entity_id,action) values('qa-p11-a','ag-1','u-1','user','platform','ag-1','support_entered')`)
+    await db.query(`insert into activity_log(id,agency_id,actor_id,actor_type,entity_type,entity_id,action) values('qa-p11-b','ag-2','u-9','user','platform','ag-2','support_entered')`)
+  }
+  await as(ASHMEET_ADMIN, async () => {
+    const rows = (await db.query(`select id from activity_log where entity_type='platform'`)).rows.map((r) => r.id)
+    assert.ok(rows.includes('qa-p11-a')); assert.ok(!rows.includes('qa-p11-b'))
+  }, setup)
+  await as(NS_ADMIN, async () => {
+    const rows = (await db.query(`select id from activity_log where entity_type='platform'`)).rows.map((r) => r.id)
+    assert.ok(rows.includes('qa-p11-b')); assert.ok(!rows.includes('qa-p11-a'))
+  }, setup)
+})
+
+test('notifications never cross agencies: an event in one agency creates nothing for the other', async () => {
+  await as(null, async () => {}, async () => {
+    const before = Number((await db.query(`select count(*) n from notifications where agency_id='ag-2'`)).rows[0].n)
+    await db.query(`insert into activity_log(id,agency_id,actor_id,actor_type,entity_type,entity_id,action,metadata)
+      select 'qa-p11-n', 'ag-1', 'u-1', 'user', 'content_item', i.id, 'cut_submitted', '{"version":9}' from content_items i where i.agency_id='ag-1' limit 1`)
+    const after = Number((await db.query(`select count(*) n from notifications where agency_id='ag-2'`)).rows[0].n)
+    assert.equal(after, before, 'agency 2 received a notification caused by agency 1')
+    const recipients = (await db.query(`select distinct u.agency_id from notifications n join users u on u.id=n.user_id where n.created_at > now() - interval '1 minute'`)).rows
+    assert.ok(recipients.every((r) => r.agency_id === 'ag-1'))
+  })
+})
+
+test('every notification, link and activity row belongs to the same agency as the user or item it points at', async () => {
+  const mismatches = await db.query(`
+    select 'notification' kind, count(*)::int n from notifications n join users u on u.id = n.user_id where u.agency_id <> n.agency_id
+    union all select 'approval_link', count(*)::int from approval_links l join content_items i on i.id = l.content_item_id where i.agency_id <> l.agency_id
+    union all select 'comment', count(*)::int from comments c join deliverable_versions v on v.id = c.version_id where v.agency_id <> c.agency_id
+    union all select 'post', count(*)::int from post_schedule p join content_items i on i.id = p.content_item_id where i.agency_id <> p.agency_id
+    union all select 'raw_file', count(*)::int from raw_files r join shoots s on s.id = r.shoot_id where s.agency_id <> r.agency_id`)
+  for (const row of mismatches.rows) assert.equal(row.n, 0, `${row.kind} rows point across agencies`)
+})

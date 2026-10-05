@@ -5,6 +5,7 @@ import { badRequest, forbidden, parseJsonBody, unauthorized } from '@/lib/api'
 import { completeMultipart, listParts } from '@/lib/b2/presign'
 import { canUploadCut, canUploadLibrary, getUploadSession, PART_SIZE, uploadedObjectMatches } from '@/lib/phase5/upload'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { pushAfterResponse } from '@/lib/push/send'
 
 const schema = z.object({ sessionId: z.uuid(),
   durationSeconds: z.number().int().min(0).max(7200).nullable().optional(), assetKind: z.enum(['video','image','audio','document']).optional() })
@@ -44,6 +45,7 @@ export async function POST(request: Request) {
       ? await supabaseAdmin.rpc('phase5_complete_cut',{ p_session_id: session.id, p_actor_id: user.id, p_duration_seconds: body.value.durationSeconds ?? null })
       : await supabaseAdmin.rpc('phase5_complete_library',{ p_session_id: session.id, p_actor_id: user.id, p_asset_kind: body.value.assetKind })
     if (error) return badRequest(error.message)
+    pushAfterResponse()
     return NextResponse.json({ result: data, completed: true })
   } catch { return NextResponse.json({ message: 'Could not complete B2 upload; retry completion' },{ status: 502 }) }
 }

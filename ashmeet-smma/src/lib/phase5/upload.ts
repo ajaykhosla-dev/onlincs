@@ -27,7 +27,7 @@ export async function getUploadSession(user: User, id: string): Promise<UploadSe
 export async function canUploadCut(user: User, itemId: string) {
   if (user.role !== 'editor') return false
   const { data } = await supabaseAdmin.from('content_items').select('agency_id,assigned_editor_id,status').eq('id',itemId).maybeSingle()
-  return data?.agency_id === user.agency_id && data.assigned_editor_id === user.id && data.status === 'with_editor'
+  return data?.agency_id === user.agency_id && data.assigned_editor_id === user.id && ['with_editor','changes_requested','client_changes'].includes(data.status)
 }
 
 export async function canUploadLibrary(user: User, clientId: string) {

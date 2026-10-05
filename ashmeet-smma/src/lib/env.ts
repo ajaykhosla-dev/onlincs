@@ -35,7 +35,10 @@ const schema = z.object({
   CRON_SECRET: z.string().min(20),
   NEXT_PUBLIC_APP_URL: z.string().url(),
 
-  TRANSCRIPTION_API_KEY: z.string().optional(), // Phase 6
+  // Voice-note transcription (Phase 6): any OpenAI-compatible /audio/transcriptions endpoint
+  TRANSCRIPTION_API_KEY: z.string().optional(),
+  TRANSCRIPTION_API_URL: z.string().url().default('https://api.openai.com/v1'),
+  TRANSCRIPTION_MODEL: z.string().default('whisper-1'),
 })
 
 export class EnvError extends Error {

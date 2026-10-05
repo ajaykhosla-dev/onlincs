@@ -1,22 +1,30 @@
 import { Rail, TopNav } from '@/components/shared'
+import { PwaPrompts } from '@/components/pwa/PwaPrompts'
 import { AddClientButton } from '@/components/console/AddClientButton'
+import { ExportButton } from '@/components/console/ExportButton'
 import {
   IconClients,
-  IconDownload,
   IconPerformance,
   IconPipeline,
 } from '@/components/shared/icons'
+import { navBadges } from '@/lib/auth/badges'
+import { agencyBrand } from '@/lib/auth/brand'
+import { SupportBanner } from '@/components/platform/SupportBanner'
+import '@/styles/screens/platform.css'
 import { navigationFor } from '@/lib/auth/navigation'
 import { requireGroupUser } from '@/lib/auth/session'
 import '@/styles/screens/console-admin.css'
 import '@/styles/screens/console-manager.css'
+import '@/styles/screens/review.css'
 
 // Admin chrome, from admin.html. Rail active state follows the URL.
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await requireGroupUser('admin')
-  const navigation = navigationFor(user, 'admin')
+  const brand = await agencyBrand(user.agency_id)
+  const navigation = navigationFor(user, 'admin', await navBadges(user))
   return (
     <div className="r-console">
+      <SupportBanner user={user} />
       <div className="shell">
         <Rail initials={user.initials} {...navigation} />
         <main className="main">
@@ -28,18 +36,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             ]}
             searchPlaceholder="Search clients or shoots"
             gearLabel="Settings"
-            user={user}
+            user={user} agency={brand}
           >
-            <button type="button" className="btn-soft">
-              <IconDownload />
-              Export data
-              <span className="chip">XLS</span>
-            </button>
+            <ExportButton />
             <AddClientButton />
           </TopNav>
           {children}
         </main>
       </div>
+      <PwaPrompts />
     </div>
   )
 }

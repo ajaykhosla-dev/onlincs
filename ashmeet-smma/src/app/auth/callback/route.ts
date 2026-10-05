@@ -21,6 +21,11 @@ export async function GET(request: NextRequest) {
     await client.auth.signOut()
     return applyCookies(NextResponse.redirect(new URL(`/auth/login?error=${lookupError ? 'workspace_unavailable' : 'not_invited'}`, request.url)))
   }
+  const { data: agency } = await supabaseAdmin.from('agencies').select('status').eq('id', user.agency_id).maybeSingle()
+  if (agency?.status === 'suspended' && user.role !== 'platform_owner') {
+    await client.auth.signOut()
+    return applyCookies(NextResponse.redirect(new URL('/auth/login?error=suspended', request.url)))
+  }
   const target = safeReturnTo(request.cookies.get('auth-return-to')?.value) ?? homeForRole(user.role)!
   const response = NextResponse.redirect(new URL(target, request.url))
   response.cookies.delete('auth-return-to')

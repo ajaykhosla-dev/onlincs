@@ -2,14 +2,14 @@
 
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { MediaPlayer } from '@/components/editor/MediaPlayer'
+import { ReviewPanel } from '@/components/review/ReviewPanel'
 import type { MediaVersion } from '@/lib/phase5/data'
 
 type Item = { id: string; title: string; client_name: string; status: string; deadline: string | null;
   assigned_editor_id: string | null; versions: MediaVersion[] }
 type Editor = { id: string; full_name: string; load: number }
 
-export function LiveDen({ items, editors }: { items: Item[]; editors: Editor[] }) {
+export function LiveDen({ items, editors, userId }: { items: Item[]; editors: Editor[]; userId: string }) {
   const router = useRouter()
   const [selected,setSelected] = useState<string | null>(null)
   const [editorId,setEditorId] = useState('')
@@ -54,13 +54,8 @@ export function LiveDen({ items, editors }: { items: Item[]; editors: Editor[] }
         <button className="btn-dark" type="button" disabled={busy} onClick={assign}>{item.assigned_editor_id ? 'Update assignment' : 'Assign edit'}</button>
       </div>}
       {error && <p role="alert">{error}</p>}
-      <h3 style={{ marginTop:20 }}>Version history</h3>
-      {!item.versions.length && <p>No cut has been submitted yet.</p>}
-      {[...item.versions].reverse().map((version,index) => <div key={version.id} style={{ borderTop:'1px solid #e8e8f2',padding:'16px 0' }}>
-        <strong>Version {version.version}{index === 0 ? ' · latest' : ' · read only'}</strong>
-        <p>{version.status.replaceAll('_',' ')} · {(version.file_size_bytes/1048576).toFixed(1)} MB · {version.duration_seconds == null ? 'Duration pending' : `${version.duration_seconds}s`} · {new Date(version.uploaded_at).toLocaleString()}</p>
-        <MediaPlayer key={version.id} versionId={version.id} title={`version ${version.version}`} />
-      </div>)}
+      {!item.versions.length ? <p>No cut has been submitted yet.</p>
+        : <ReviewPanel key={item.id} itemId={item.id} itemStatus={item.status} versions={item.versions} currentUserId={userId} />}
     </div>}
   </section>
 }

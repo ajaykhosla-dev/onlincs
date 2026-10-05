@@ -1,8 +1,7 @@
 import 'server-only'
 import { ensureFolder, folderLink } from '@/lib/drive/folders'
-import { drive } from '@/lib/drive/auth'
+import { driveFor } from '@/lib/integrations/credentials'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { env } from '@/lib/env'
 
 function istDate(value: string) {
   const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date(value))
@@ -30,15 +29,16 @@ export async function provisionShoot(shootId: string): Promise<{ status: string 
   try {
     const { data: shoot, error: shootError } = await supabaseAdmin.from('shoots').select('*').eq('id', shootId).single()
     if (shootError || !shoot) throw new Error('Shoot not found')
-    const { data: driveState } = await supabaseAdmin.from('drive_sync_state').select('shared_drive_id').eq('agency_id', shoot.agency_id).maybeSingle()
-    if (driveState?.shared_drive_id !== env.GOOGLE_SHARED_DRIVE_ID) throw new Error('Workspace Shared Drive is not configured')
+    const ctx = await driveFor(shoot.agency_id)
+    if (!ctx) throw new Error('Workspace Shared Drive is not configured')
+    const { drive } = ctx
     const { data: client, error: clientError } = await supabaseAdmin.from('clients').select('name').eq('id', shoot.client_id).single()
     if (clientError || !client) throw new Error('Client not found')
     const { data: links, error: linkError } = await supabaseAdmin.from('shoot_items').select('content_item_id,idea_slug,drive_subfolder_id').eq('shoot_id', shootId)
     if (linkError || !links?.length) throw new Error('Shoot has no content items')
     const day = istDate(shoot.scheduled_start)
-    const clientFolder = await ensureFolder(client.name, null)
-    const monthFolder = await ensureFolder(day.slice(0, 7), clientFolder)
+    const clientFolder = await ensureFolder(ctx, client.name, null)
+    const monthFolder = await ensureFolder(ctx, day.slice(0, 7), clientFolder)
     const shootName = `${day} ${shoot.title}`
     let shootFolder = shoot.drive_folder_id as string | null
     if (shootFolder) {
@@ -49,12 +49,12 @@ export async function provisionShoot(shootId: string): Promise<{ status: string 
           addParents: oldParents.includes(monthFolder) ? undefined : monthFolder,
           removeParents: oldParents.includes(monthFolder) ? undefined : oldParents.join(',') })
       }
-    } else shootFolder = await ensureFolder(shootName, monthFolder)
+    } else shootFolder = await ensureFolder(ctx, shootName, monthFolder)
     const { error: folderError } = await supabaseAdmin.from('shoots').update({ drive_folder_id: shootFolder, drive_folder_link: folderLink(shootFolder) }).eq('id', shootId)
     if (folderError) throw folderError
     for (const link of links) {
       if (link.drive_subfolder_id && !link.drive_subfolder_id.startsWith('dr-sh')) continue
-      const folder = await ensureFolder(link.idea_slug || link.content_item_id, shootFolder)
+      const folder = await ensureFolder(ctx, link.idea_slug || link.content_item_id, shootFolder)
       const { error } = await supabaseAdmin.from('shoot_items').update({ drive_subfolder_id: folder, drive_subfolder_link: folderLink(folder) })
         .eq('shoot_id', shootId).eq('content_item_id', link.content_item_id)
       if (error) throw error

@@ -4,6 +4,7 @@ import { badRequest, forbidden, parseJsonBody, unauthorized } from '@/lib/api'
 import { shootFor } from '@/lib/phase4/data'
 import { shootEditBody } from '@/lib/phase4/schemas'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { pushAfterResponse } from '@/lib/push/send'
 
 type Context = { params: Promise<{ id: string }> }
 export async function GET(_request: Request,{ params }: Context) {
@@ -21,6 +22,7 @@ export async function PATCH(request: Request,{ params }: Context) {
   const body = await parseJsonBody(request,shootEditBody)
   if (!body.ok) return body.response
   const { data,error } = await supabaseAdmin.rpc('phase4_update_shoot',{ p_shoot_id:id,p_data:body.value,p_actor_id:user.id })
+  if (!error) pushAfterResponse()
   return error ? badRequest(error.message) : NextResponse.json(data)
 }
 export async function DELETE(_request: Request,{ params }: Context) {

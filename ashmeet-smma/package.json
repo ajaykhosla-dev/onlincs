@@ -10,11 +10,14 @@
     "test": "node --conditions=react-server --import tsx --test tests/*.test.ts",
     "verify:drive": "tsx --conditions=react-server --env-file=.env.local scripts/verify-drive.ts",
     "verify:b2": "tsx --conditions=react-server --env-file=.env.local scripts/verify-b2.ts",
+    "verify:tenants": "tsx --conditions=react-server --env-file=.env.local scripts/verify-phase11-live.ts",
+    "verify:analytics": "tsx --conditions=react-server --env-file=.env.local scripts/verify-phase9-analytics.ts",
     "format": "prettier --write ."
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1146.0",
     "@aws-sdk/s3-request-presigner": "^3.1146.0",
+    "@sentry/nextjs": "^11.4.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.2",
     "dotenv": "^18.0.5",
@@ -23,6 +26,7 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "server-only": "^0.0.1",
+    "web-push": "^3.6.7",
     "zod": "^4.6.5"
   },
   "devDependencies": {
@@ -31,6 +35,7 @@
     "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/web-push": "^3.6.4",
     "eslint": "^9",
     "eslint-config-next": "16.3.7",
     "pg": "^8.23.1",

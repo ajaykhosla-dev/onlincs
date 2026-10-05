@@ -1,11 +1,13 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState, type RefObject } from 'react'
 
 function stamp(seconds: number) { const value = Math.floor(Number.isFinite(seconds) ? seconds : 0); return `${Math.floor(value/60)}:${String(value%60).padStart(2,'0')}` }
 
-export function MediaPlayer({ versionId, title }: { versionId: string; title: string }) {
-  const video = useRef<HTMLVideoElement>(null)
+/** `videoRef` lets a review panel read the playhead and seek; `autoLoad` fetches the link on mount. */
+export function MediaPlayer({ versionId, title, videoRef, autoLoad = false }: { versionId: string; title: string; videoRef?: RefObject<HTMLVideoElement | null>; autoLoad?: boolean }) {
+  const own = useRef<HTMLVideoElement>(null)
+  const video = videoRef ?? own
   const [src,setSrc] = useState('')
   const [error,setError] = useState('')
   const [faststart,setFaststart] = useState<boolean | null>(null)
@@ -14,14 +16,17 @@ export function MediaPlayer({ versionId, title }: { versionId: string; title: st
   const [playing,setPlaying] = useState(false)
 
   async function load() {
-    setError('')
     try {
       const response = await fetch(`/api/media/play?versionId=${encodeURIComponent(versionId)}`,{ cache:'no-store' })
       const payload = await response.json()
       if (!response.ok) throw new Error(payload.message ?? 'Could not load cut')
-      setSrc(payload.url); setFaststart(payload.faststart)
+      setSrc(payload.url); setFaststart(payload.faststart); setError('')
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not load cut') }
   }
+
+  function reload() { setError(''); void load() }
+
+  useEffect(() => { if (autoLoad) queueMicrotask(() => void load()) }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function onKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
     const player = video.current
@@ -34,7 +39,7 @@ export function MediaPlayer({ versionId, title }: { versionId: string; title: st
   }
 
   return <div tabIndex={0} onKeyDown={onKeyDown} aria-label={`${title} video player`} style={{ outlineOffset: 4 }}>
-    {!src ? <button type="button" className="btn-dark" onClick={load}>Load {title}</button>
+    {!src ? <button type="button" className="btn-dark" onClick={reload}>Load {title}</button>
       : <video ref={video} src={src} controls preload="metadata" playsInline style={{ width:'100%',maxHeight:420,background:'#111',borderRadius:12 }}
         onTimeUpdate={(event) => setCurrent(event.currentTarget.currentTime)}
         onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
@@ -45,7 +50,7 @@ export function MediaPlayer({ versionId, title }: { versionId: string; title: st
       <input aria-label="Seek video" type="range" min={0} max={Math.max(1,duration)} step="0.1" value={Math.min(current,Math.max(1,duration))}
         onChange={(event) => { if (video.current) video.current.currentTime = Number(event.target.value) }} style={{ flex:1 }} />
       <span>{stamp(current)} / {stamp(duration)}</span>
-      <button type="button" className="btn-soft" onClick={load}>Refresh link</button>
+      <button type="button" className="btn-soft" onClick={reload}>Refresh link</button>
     </div>}
     {faststart === false && <p role="status" style={{ color:'#9a5a00' }}>Faststart is missing: this MP4 stores its moov atom after the media data. Re-export with faststart for reliable scrubbing.</p>}
     {error && <p role="alert" style={{ color:'#a11942' }}>{error}</p>}

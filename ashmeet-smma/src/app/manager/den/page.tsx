@@ -5,5 +5,5 @@ import { denData } from '@/lib/phase5/data'
 export default async function ManagerDenPage() {
   const user = await requireGroupUser('manager')
   const data = await denData(user)
-  return <LiveDen {...data} />
+  return <LiveDen {...data} userId={user.id} />
 }

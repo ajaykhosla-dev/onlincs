@@ -23,3 +23,33 @@
 .workspace-loading p{margin:0}
 .auth-exit{background:#f8f7fc}
 .auth-exit body{visibility:hidden}
+
+/* Notification bell */
+.bell-wrap{position:relative}
+.bell-wrap .ghost{position:relative}
+.bell-badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:#D8264F;color:#fff;font:800 11px/18px var(--font);text-align:center}
+.bell-panel{position:absolute;right:0;top:calc(100% + 10px);z-index:60;width:min(380px,calc(100vw - 24px));max-height:min(520px,calc(100vh - 100px));display:flex;flex-direction:column;background:#fff;border-radius:18px;box-shadow:0 18px 50px rgba(27,27,58,.22);overflow:hidden}
+.bell-head{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid #F1F1F8;color:var(--ink)}
+.bell-list{overflow-y:auto}
+.bell-day{padding:10px 16px 4px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-soft)}
+.bell-item{display:grid;gap:2px;width:100%;text-align:left;border:0;background:#fff;padding:10px 16px;cursor:pointer;color:var(--ink);font-family:var(--font)}
+.bell-item:hover,.bell-item:focus-visible{background:var(--tint)}
+.bell-item.is-unread{background:var(--lavender)}
+.bell-title{font-size:13px;font-weight:700}
+.bell-unread-text{color:var(--violet-deep)}
+.bell-body{font-size:12.5px;color:var(--ink-soft);line-height:1.45}
+.bell-time{font-size:11px;color:var(--muted)}
+.bell-empty{margin:0;padding:22px 16px;font-size:13px;color:var(--ink-soft)}
+.bell-foot{padding:12px 16px;border-top:1px solid #F1F1F8;font-size:12.5px;font-weight:700;color:var(--violet-deep);text-decoration:none}
+
+/* Install and push prompts */
+.pwa-card{position:fixed;left:16px;bottom:16px;z-index:70;width:min(360px,calc(100vw - 32px));display:grid;gap:8px;padding:16px;border-radius:18px;background:#fff;color:var(--ink);box-shadow:0 18px 50px rgba(27,27,58,.25)}
+.pwa-card p{margin:0;font-size:13px;line-height:1.5;color:var(--ink-soft)}
+.pwa-actions{display:flex;gap:8px;flex-wrap:wrap}
+.pwa-link{font-size:12px;font-weight:700;color:var(--violet-deep)}
+@media(max-width:760px){.pwa-card{bottom:84px}}
+
+/* Agency branding in the top navigation */
+.nav-agency{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;color:var(--ink-soft);white-space:nowrap}
+.nav-agency img{border-radius:6px;object-fit:cover}
+@media(max-width:760px){.nav-agency span{display:none}}

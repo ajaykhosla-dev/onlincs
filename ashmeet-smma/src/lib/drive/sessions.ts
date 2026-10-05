@@ -3,9 +3,9 @@ import { randomUUID } from 'node:crypto'
 import { decrypt, encrypt } from '@/lib/crypto'
 import { canAccess } from '@/lib/auth/can-access'
 import { supabaseAdmin } from '@/lib/supabase/admin'
-import { drive, serviceAccountToken } from '@/lib/drive/auth'
-import { env } from '@/lib/env'
+import { driveFor } from '@/lib/integrations/credentials'
 import type { User } from '@/types/database'
+import { pushAfterResponse } from '@/lib/push/send'
 
 const INIT_URL =
   'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true&fields=id,name,size,mimeType,webViewLink,parents'
@@ -56,9 +56,9 @@ export async function createUploadSession(
 ): Promise<Result<{ sessionId: string; sessionUri: string; expiresAt: string }>> {
   const { data: shoot } = await supabaseAdmin.from('shoots').select('id, agency_id, cameraman_id, drive_folder_id').eq('id', p.shootId).maybeSingle()
   if (!shoot) return fail({ code: 'not_found', message: 'Shoot not found' })
-  const { data: driveState } = await supabaseAdmin.from('drive_sync_state').select('shared_drive_id').eq('agency_id', shoot.agency_id).maybeSingle()
-  if (driveState?.shared_drive_id !== env.GOOGLE_SHARED_DRIVE_ID)
-    return fail({ code: 'no_folder', message: 'This workspace has no configured Shared Drive' })
+  // Each agency uses its own Drive credentials; an agency with none configured cannot start an upload.
+  const ctx = await driveFor(shoot.agency_id)
+  if (!ctx) return fail({ code: 'no_folder', message: 'This workspace has no configured Shared Drive' })
 
   // The idea must actually be linked to this shoot (shoot_items is the join).
   const { data: link } = await supabaseAdmin
@@ -76,7 +76,7 @@ export async function createUploadSession(
   const folderId = link.drive_subfolder_id
   if (!folderId) return fail({ code: 'no_folder', message: 'This idea folder is still being provisioned' })
 
-  const token = await serviceAccountToken()
+  const token = await ctx.token()
   // `Origin` binds the session to the app origin so Google answers the browser's later
   // cross-origin chunk PUTs with the right CORS headers.
   const res = await fetch(INIT_URL, {
@@ -189,7 +189,9 @@ export async function completeUpload(user: User, sessionId: string, driveFileId:
   if (!loaded.ok) return loaded
   const { row } = loaded.value
 
-  const file = await drive.files
+  const ctx = await driveFor(row.agency_id)
+  if (!ctx) return fail({ code: 'no_folder', message: 'This workspace has no configured Shared Drive' })
+  const file = await ctx.drive.files
     .get({ fileId: driveFileId, fields: 'id,name,size,mimeType,webViewLink,parents', supportsAllDrives: true })
     .then((r) => r.data)
     .catch(() => null)
@@ -230,5 +232,6 @@ export async function completeUpload(user: User, sessionId: string, driveFileId:
   await supabaseAdmin.from('shoot_items').update({ raw_uploaded_at: now, marked_by: user.id }).eq('shoot_id', row.shoot_id).eq('content_item_id', row.content_item_id)
   const { error: arrivalError } = await supabaseAdmin.rpc('phase4_arrival', { p_shoot_id: row.shoot_id, p_actor_id: user.id, p_source: 'wrapper' })
   if (arrivalError) return fail({ code: 'upstream', message: 'Upload recorded, but shoot arrival needs reconciliation' })
+  pushAfterResponse()
   return { ok: true, value: { rawFileId: rawFile.id, driveLink: rawFile.drive_link } }
 }

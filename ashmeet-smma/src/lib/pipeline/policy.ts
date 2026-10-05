@@ -17,6 +17,9 @@ export const allowedTransitions: Record<ContentStatus, readonly ContentStatus[]>
   archived: [],
 }
 
+/** Reachable only through the Phase 6 review/link/client routes and the Phase 7 posting routes, never the generic transition. */
+export const reviewOwnedStatuses: readonly ContentStatus[] = ['changes_requested', 'internally_approved', 'with_client', 'client_changes', 'client_approved', 'scheduled', 'posted']
+
 const transitionRoles: Partial<Record<ContentStatus, readonly Role[]>> = {
   calendar_approved: ['admin', 'brand_manager'],
   shoot_scheduled: ['admin', 'brand_manager'],

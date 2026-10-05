@@ -1,6 +1,5 @@
 import 'server-only'
 import {
-  S3Client,
   GetObjectCommand,
   PutObjectCommand,
   DeleteObjectCommand,
@@ -12,48 +11,72 @@ import {
   ListPartsCommand,
 } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
-import { env } from '@/lib/env'
+import { b2For, environmentB2 } from '@/lib/integrations/credentials'
+import { withRetry } from '@/lib/retry'
 
-// B2's S3-compatible API. Bytes go browser -> B2 via these presigned URLs,
-// never through the Next.js server.
-export const b2 = new S3Client({
-  endpoint: env.B2_ENDPOINT,
-  region: env.B2_REGION,
-  forcePathStyle: true,
-  credentials: { accessKeyId: env.B2_KEY_ID, secretAccessKey: env.B2_APPLICATION_KEY },
-})
-
-const Bucket = env.B2_BUCKET
+// B2's S3-compatible API. Bytes go browser -> B2 via these presigned URLs, never through the Next.js server.
+// Every key starts with its agency id (agency/cuts/..., agency/voice-notes/..., agency/library/...), so the key
+// alone tells us whose bucket and credentials to use; a key can never be signed with another agency's credentials.
 const DEFAULT_TTL = 15 * 60
 
-export const presignPut = (Key: string, ContentType: string, expiresIn = DEFAULT_TTL) =>
-  getSignedUrl(b2, new PutObjectCommand({ Bucket, Key, ContentType }), { expiresIn })
+async function target(Key: string) {
+  const agencyId = Key.split('/')[0]
+  return agencyId.startsWith('ag-') ? b2For(agencyId) : environmentB2
+}
+/** Back-compat for scripts that want the environment client. */
+export const b2 = environmentB2.client
 
-export const presignGet = (Key: string, expiresIn = DEFAULT_TTL) =>
-  getSignedUrl(b2, new GetObjectCommand({ Bucket, Key }), { expiresIn })
+export const presignPut = async (Key: string, ContentType: string, expiresIn = DEFAULT_TTL) => {
+  const { client, bucket } = await target(Key)
+  return getSignedUrl(client, new PutObjectCommand({ Bucket: bucket, Key, ContentType }), { expiresIn })
+}
+
+export const presignGet = async (Key: string, expiresIn = DEFAULT_TTL) => {
+  const { client, bucket } = await target(Key)
+  return getSignedUrl(client, new GetObjectCommand({ Bucket: bucket, Key }), { expiresIn })
+}
+
+/** Short-lived download URL that makes the browser save the object under a readable name. */
+export const presignDownload = async (Key: string, filename: string, expiresIn = 5 * 60) => {
+  const { client, bucket } = await target(Key)
+  return getSignedUrl(client, new GetObjectCommand({ Bucket: bucket, Key, ResponseContentDisposition: `attachment; filename="${filename}"`, ResponseContentType: 'video/mp4' }), { expiresIn })
+}
 
 export async function createMultipart(Key: string, ContentType: string) {
-  const res = await b2.send(new CreateMultipartUploadCommand({ Bucket, Key, ContentType }))
+  const { client, bucket } = await target(Key)
+  const res = await withRetry(() => client.send(new CreateMultipartUploadCommand({ Bucket: bucket, Key, ContentType })), { service: 'Backblaze B2' })
   if (!res.UploadId) throw new Error('B2 did not return an UploadId')
   return res.UploadId
 }
 
-export const presignPart = (Key: string, UploadId: string, PartNumber: number, expiresIn = DEFAULT_TTL) =>
-  getSignedUrl(b2, new UploadPartCommand({ Bucket, Key, UploadId, PartNumber }), { expiresIn })
+export const presignPart = async (Key: string, UploadId: string, PartNumber: number, expiresIn = DEFAULT_TTL) => {
+  const { client, bucket } = await target(Key)
+  return getSignedUrl(client, new UploadPartCommand({ Bucket: bucket, Key, UploadId, PartNumber }), { expiresIn })
+}
 
-export const completeMultipart = (Key: string, UploadId: string, parts: { PartNumber: number; ETag: string }[]) =>
-  b2.send(new CompleteMultipartUploadCommand({ Bucket, Key, UploadId, MultipartUpload: { Parts: parts } }))
+export const completeMultipart = async (Key: string, UploadId: string, parts: { PartNumber: number; ETag: string }[]) => {
+  const { client, bucket } = await target(Key)
+  return withRetry(() => client.send(new CompleteMultipartUploadCommand({ Bucket: bucket, Key, UploadId, MultipartUpload: { Parts: parts } })), { service: 'Backblaze B2' })
+}
 
-export const abortMultipart = (Key: string, UploadId: string) =>
-  b2.send(new AbortMultipartUploadCommand({ Bucket, Key, UploadId }))
+export const abortMultipart = async (Key: string, UploadId: string) => {
+  const { client, bucket } = await target(Key)
+  return client.send(new AbortMultipartUploadCommand({ Bucket: bucket, Key, UploadId }))
+}
 
-export const headObject = (Key: string) => b2.send(new HeadObjectCommand({ Bucket, Key }))
-export const listParts = (Key: string, UploadId: string) =>
-  b2.send(new ListPartsCommand({ Bucket, Key, UploadId, MaxParts: 1000 }))
+export const headObject = async (Key: string) => {
+  const { client, bucket } = await target(Key)
+  return withRetry(() => client.send(new HeadObjectCommand({ Bucket: bucket, Key })), { service: 'Backblaze B2' })
+}
+export const listParts = async (Key: string, UploadId: string) => {
+  const { client, bucket } = await target(Key)
+  return client.send(new ListPartsCommand({ Bucket: bucket, Key, UploadId, MaxParts: 1000 }))
+}
 
 /** Inspect only the first MiB; the media itself still streams browser -> B2. */
 export async function hasFaststart(Key: string): Promise<boolean | null> {
-  const response = await b2.send(new GetObjectCommand({ Bucket, Key, Range: 'bytes=0-1048575' }))
+  const { client, bucket } = await target(Key)
+  const response = await client.send(new GetObjectCommand({ Bucket: bucket, Key, Range: 'bytes=0-1048575' }))
   if (!response.Body) return null
   const bytes = await response.Body.transformToByteArray()
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
@@ -68,7 +91,13 @@ export async function hasFaststart(Key: string): Promise<boolean | null> {
   return null
 }
 
-export const deleteObject = (Key: string) => b2.send(new DeleteObjectCommand({ Bucket, Key }))
+export const deleteObject = async (Key: string) => {
+  const { client, bucket } = await target(Key)
+  return withRetry(() => client.send(new DeleteObjectCommand({ Bucket: bucket, Key })), { service: 'Backblaze B2' })
+}
 
 /** Unsigned URL for the object — must be rejected (401/403) by a private bucket. */
-export const unsignedUrl = (Key: string) => `${env.B2_ENDPOINT}/${Bucket}/${Key}`
+export const unsignedUrl = async (Key: string) => {
+  const { endpoint, bucket } = await target(Key)
+  return `${endpoint}/${bucket}/${Key}`
+}

@@ -1,3 +1,6 @@
+import { StorageView } from '@/components/console/StorageView'
+import { requireGroupUser } from '@/lib/auth/session'
+import { supabaseAdmin } from '@/lib/supabase/admin'
 import { Avatar, DataTable, Tag, type Column } from '@/components/shared'
 import { team, type TeamMember } from '@/lib/fixtures/console'
 import { settingsRoles } from '@/lib/fixtures/console-screens'
@@ -28,7 +31,9 @@ const columns: Column<TeamMember>[] = [
   },
 ]
 
-export default function AdminSettingsPage() {
+export default async function AdminSettingsPage() {
+  const user = await requireGroupUser('admin')
+  const { data: platform } = await supabaseAdmin.from('activity_log').select('id,action,created_at,metadata').eq('agency_id', user.agency_id).eq('entity_type', 'platform').order('created_at', { ascending: false }).limit(20)
   return (
     <>
       <section className="hero-row" style={{ gridTemplateColumns: '1fr' }}>
@@ -85,16 +90,28 @@ export default function AdminSettingsPage() {
           </div>
           <div style={{ paddingTop: 14 }}>
             <div className="settings-row-label">Drive storage</div>
-            <div className="settings-row-note">1.64 TB of 2 TB used</div>
-            <div className="usage-track">
-              <span className="usage-fill" style={{ width: '82%', background: 'linear-gradient(90deg,#FFC974,#E8901A)' }} />
-            </div>
-            <div style={{ fontSize: '11.5px', color: 'var(--amber-ink)', fontWeight: 700, marginTop: 8 }}>
-              Approaching threshold &mdash; review raw footage eligible for deletion
-            </div>
+            <div className="settings-row-note">Live usage, what is eligible for deletion, and unfinished uploads are in the Storage section below.</div>
           </div>
         </section>
       </div>
+
+      <section style={{ marginTop: 18 }} id="storage">
+        <h2 className="card-title" style={{ marginBottom: 12 }}>Storage</h2>
+        <StorageView />
+      </section>
+
+      <section className="card" style={{ marginTop: 18, padding: 22 }} id="platform-access">
+        <div className="card-title" style={{ marginBottom: 8 }}>Platform and support access</div>
+        <p className="cm-meta">Whenever RapidArc staff open this workspace for support or change its settings, it is recorded here with the time and, for support, how long.</p>
+        {!(platform ?? []).length ? <p className="cm-meta" style={{ marginTop: 10 }}>No platform access has been recorded.</p> : <div style={{ overflowX: 'auto' }}><table className="data-table" style={{ width: '100%', marginTop: 10 }}>
+          <thead><tr><th>When</th><th>What</th><th>Detail</th></tr></thead>
+          <tbody>{(platform ?? []).map((entry) => {
+            const meta = (entry.metadata ?? {}) as { reason?: string; duration_seconds?: number }
+            return <tr key={entry.id}><td>{new Date(entry.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' })}</td>
+              <td>{entry.action.replaceAll('_', ' ')}</td>
+              <td>{meta.reason ?? ''}{meta.duration_seconds != null ? ` · lasted ${Math.max(1, Math.round(meta.duration_seconds / 60))} min` : ''}</td></tr>
+          })}</tbody></table></div>}
+      </section>
 
       <section className="card" style={{ marginTop: 18 }}>
         <div className="card-head">

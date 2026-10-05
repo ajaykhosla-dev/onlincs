@@ -1,7 +1,9 @@
+/* eslint-disable @next/next/no-img-element -- a data-URL QR code and an agency-supplied logo URL cannot go through next/image */
 'use client'
 
 import { useState, type ReactNode } from 'react'
 import { IconBell, IconGear, IconMoon, IconSearch, IconSun } from './icons'
+import { NotificationBell } from './NotificationBell'
 import { SignOutButton } from './SignOutButton'
 
 export type TopNavTab = { label: string; icon: ReactNode; active?: boolean }
@@ -17,6 +19,7 @@ export function TopNav({
   bell = true,
   gearLabel,
   user,
+  agency,
   children,
 }: {
   tabs?: TopNavTab[]
@@ -25,6 +28,8 @@ export function TopNav({
   bell?: boolean
   gearLabel?: string
   user?: { full_name: string; initials: string; avatar_gradient: string }
+  /** Light white-labelling: this agency's display name and logo. */
+  agency?: { name: string; logo_url: string | null }
   children?: ReactNode
 }) {
   const [mode, setMode] = useState<'light' | 'dark'>('light')
@@ -46,6 +51,7 @@ export function TopNav({
       )}
 
       <div className="nav-right">
+        {agency && <div className="nav-agency" title={agency.name}>{agency.logo_url && <img src={agency.logo_url} alt="" width={22} height={22} />}<span>{agency.name}</span></div>}
         {user && (
           <div className="nav-user" aria-label={`Signed in as ${user.full_name}`}>
             <span className="nav-user-name">{user.full_name}</span>
@@ -65,12 +71,11 @@ export function TopNav({
             </button>
           </div>
         )}
-        {bell && (
+        {bell && (user ? <NotificationBell /> : (
           <button type="button" className="ghost" aria-label="Notifications">
             <IconBell />
-            <span className="dot"></span>
           </button>
-        )}
+        ))}
         {gearLabel && (
           <button type="button" className="ghost" aria-label={gearLabel}>
             <IconGear />
