@@ -149,7 +149,14 @@ VAPID_SUBJECT=
 # Platform
 CREDENTIAL_ENCRYPTION_KEY=          # master key for agency_integrations and session URIs
 CRON_SECRET=
-TRANSCRIPTION_API_KEY=
+SENTRY_DSN=                         # optional server error reporting (inert if unset)
+# Per-agency Drive and B2 credentials are NOT environment variables: they are entered in the platform console and stored encrypted in agency_integrations.
+# The GOOGLE_* and B2_* variables above remain only as the fallback for the original Ashmeet workspace.
+NEXT_PUBLIC_SENTRY_DSN=             # optional browser error reporting
+SENTRY_AUTH_TOKEN=                  # optional with SENTRY_ORG and SENTRY_PROJECT: uploads source maps at build
+TRANSCRIPTION_API_KEY=                # voice-note speech-to-text; unset = transcripts show unavailable with Retry
+TRANSCRIPTION_API_URL=              # optional, OpenAI-compatible base URL (default https://api.openai.com/v1)
+TRANSCRIPTION_MODEL=                # optional (default whisper-1)
 NEXT_PUBLIC_APP_URL=
 AUTH_SECRET=                        # NextAuth session signing (interim until Phase 2 moves to Supabase Auth)
 ```

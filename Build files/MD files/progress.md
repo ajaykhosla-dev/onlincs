@@ -3,10 +3,10 @@
 > **Read this first in every session.** It is the only handoff between Claude Code sessions.
 > Update it whenever a phase completes, and whenever a session ends mid-phase.
 
-**Last updated:** 4 October 2026
-**Updated by:** Codex (Phase 5 implementation)
-**Current phase:** Phase 5 — development and live setup complete, browser/media verification pending; Phase 4 verification remains open
-**Next action:** Run Phase 5 real-browser 120MB cut upload, editor-role, playback/seek, version, and library checkpoints. Phase 4 browser checks remain deferred. Phase 1 still needs client sign-off, and Phase 0 owner decisions remain open. See `ashmeet-smma/docs/phase-5-audit.md`.
+**Last updated:** 5 October 2026
+**Updated by:** Claude Code (Phases 6 to 10 development)
+**Current phase:** All eleven phases are now developed. Migrations 009 to 013 applied live. Verification, deployment and go-live are what remain (see `ashmeet-smma/docs/` audits and `go-live-runbook.md`); Phase 5 and Phase 4 verification remain open
+**Next action:** Create the platform owner (`scripts/create-platform-owner.mjs`), walk the console, then run the checkpoints in `docs/phase-11-audit.md`. Then run the checkpoints in `docs/phase-6-audit.md`, `phase-7-audit.md`, `phase-8-9-audit.md`, `phase-10-audit.md`; follow `docs/go-live-runbook.md`. Earlier: run the Phase 6 checkpoints (see `ashmeet-smma/docs/phase-6-audit.md`), set `TRANSCRIPTION_API_KEY`, then run the Phase 6 checkpoints on a real phone and microphone. Also run Phase 5 real-browser 120MB cut upload, editor-role, playback/seek, version, and library checkpoints. Phase 4 browser checks remain deferred. Phase 1 still needs client sign-off, and Phase 0 owner decisions remain open. See `ashmeet-smma/docs/phase-5-audit.md`.
 
 ---
 
@@ -20,12 +20,12 @@
 | 3 | Clients + Content Planner — the pipeline spine | 🟡 In progress | — |
 | 4 | Shoots + Raw Upload — scheduling, Drive folders, the upload wrapper | 🟡 In progress | — |
 | 5 | Editor pipeline + media — queues, B2 upload, versions, player | 🟡 In progress | — |
-| 6 | Review + approval — comments, voice notes, magic links | ⬜ Not started | — |
-| 7 | Posting schedule — grid, captions, downloads, mark posted | ⬜ Not started | — |
-| 8 | Notifications — web push, cron staleness alerts | ⬜ Not started | — |
-| 9 | Owner analytics — SoW vs delivered, team performance | ⬜ Not started | — |
-| 10 | Hardening + launch — PWA, offline, storage view, migration | ⬜ Not started | — |
-| 11 | RapidArc platform console — tenant onboarding | ⬜ Not started | — |
+| 6 | Review + approval — comments, voice notes, magic links | 🟡 Development complete; migration applied, verification pending | — |
+| 7 | Posting schedule — grid, captions, downloads, mark posted | 🟡 Development complete; migration applied, verification pending | — |
+| 8 | Notifications — web push, cron staleness alerts | 🟡 Development complete; migration applied; real-device push and cron scheduling pending | — |
+| 9 | Owner analytics — SoW vs delivered, team performance | 🟡 Development complete; metrics verified against SQL; browser checks pending | — |
+| 10 | Hardening + launch — PWA, offline, storage view, migration | 🟡 Buildable parts done; real-device and go-live steps pending | — |
+| 11 | RapidArc platform console — tenant onboarding | 🟡 Development complete; migration applied; console not yet used by a person | — |
 
 Status values: ⬜ Not started · 🟡 In progress · ✅ Complete · ⚠️ Complete with known issues
 
@@ -34,6 +34,42 @@ Status values: ⬜ Not started · 🟡 In progress · ✅ Complete · ⚠️ Com
 ## Session log
 
 Newest entries at the top. One entry per session.
+
+### 5 Oct 2026 — Phases 6 to 11 automated testing
+**Phase:** 6 to 11 (automated verification; human and device checks still pending)
+**Done:** One test-and-fix agent per phase (6, 7, 8–9, 10, 11) ran the audit checkpoints that need no login or device, reviewed the code and probed the dev server unauthenticated. Six fixes, all in commit `b49cfa6`: B2 no longer falls back to the environment bucket for any agency except the original workspace (`lib/integrations/credentials.ts`); support-cookie signing refuses a missing or short `CREDENTIAL_ENCRYPTION_KEY` (`lib/platform/signed.ts`); the offline mark queue keeps marks on 401, runs one flush at a time and no longer overwrites marks queued mid-flush (`lib/offline/store.ts`, new test); the service worker no longer caches redirected navigations (`public/sw.js`, cache `v2`); Sentry scrubbing removes email addresses; `GET /api/posting` defaults to the IST month. Afterwards: typecheck and lint clean, 81 of 81 tests (isolation needs `--env-file=.env.local`), `verify:tenants` 30 of 30, route audit 64 routes none unprotected.
+**Not done:** Anything needing a signed-in session, a real device, real B2 cuts, a second agency's real accounts, emails, Lighthouse, a Sentry DSN or a production build.
+**Deviations:** Northside (`ag-2`) has no own B2 credentials, so its B2 operations now error until they are entered. For the original workspace, enter B2 credentials before or with its own Drive credentials, or the environment B2 fallback stops matching.
+**Carried forward:** Owner decisions: retry failed push sends, and whether quiet-hours pushes should be delivered later rather than dropped. `TRANSCRIPTION_API_KEY` is still unset.
+
+### 5 Oct 2026 — Phase 11 development
+**Phase:** 11 (development complete; verification pending)
+**Done:** Migration `013_phase11_platform.sql` applied (agency profile and lifecycle columns, credential fingerprints, support sessions, transactional onboarding and suspension functions). `/platform` console (separate dark plane, platform owner only, two-factor enforced on every page and API route): agency list with usage, onboarding with admin invite, details and branding (display name and logo appear only in that agency), write-only encrypted per-agency Drive and B2 credentials with a forgiving key parser and a per-step connection test, view-as-agency support sessions (reason required, read-only, non-dismissible banner on every workspace screen, 15-minute logged elevation, entry and exit with duration visible to the agency admin), suspension and reactivation (blocks sign-in everywhere, destroys nothing), usage, and a complete JSON export with media manifest. Drive provisioning, uploads, sync, storage deletion and B2 signing now use each agency's own credentials. 30 live multi-tenant assertions, a rollback-only SQL check, 4 new isolation tests (20 of 20), credential and support-session unit tests; full suite 80 of 80, route audit 64 routes none unprotected, client bundle clean. Details: `ashmeet-smma/docs/phase-11-audit.md`.
+**Not done:** No platform owner exists yet; the console has not been walked through by a person. Real second-agency Drive and B2 accounts, the invitation email, suspension and support banner in a browser. The deliberate-RLS-break mutation check was not repeated on the live database.
+**Deviations:** Logo is an https link. The original Ashmeet workspace keeps using environment credentials until its own are entered. Support sessions render as that agency's admin.
+**Carried forward:** Create the platform owner, then verify with two real agencies. This completes the planned build; outstanding work is verification, deployment, the production Supabase project, secret rotation and the go-live runbook.
+
+### 5 Oct 2026 — Phases 8, 9 and 10 development
+**Phase:** 8, 9, 10 (development complete except go-live)
+**Done:** Migrations `011` (notifications, push bookkeeping, preferences, alert state, activity and notification triggers, staleness functions) and `012` (indexes) applied live after rollback checks. Phase 8: service worker, push send and prune, subscribe prompt, bell, preferences and quiet hours, eight event notifications, staleness job and `/api/cron/staleness`. Phase 9: analytics layer (verified against 42 independent SQL comparisons), Team and Scope screens, clickable metric cards, role-scoped CSV export and client report, live rail badges. Phase 10: PWA (manifest, icons, install prompt), cameraman offline cache and queued sync, storage view with typed-confirmation deletion, error boundaries, Sentry with scrubbing (inert without a DSN), retry with backoff, route audit (56 routes, none unprotected; three routes moved onto `canAccess`), client-bundle secret scan (clean), query timings (all under 90 ms), dev pages 404 in production. 66 of 66 tests pass including the isolation suite on the live database. Details: `ashmeet-smma/docs/phase-8-9-audit.md`, `phase-10-audit.md`, `go-live-runbook.md`.
+**Not done:** Real-device push, install on Android and iOS, offline in airplane mode, Lighthouse, a real Drive deletion, Sentry with a real DSN, pg_cron scheduling (needs the deployed URL), and Phase 10 step 6 (real data, team onboarding, observed sessions, parallel period). Phase 11 not started.
+**Deviations:** New dependencies `web-push` and `@sentry/nextjs`. Seed data is too thin to reproduce the spec's example SoW numbers. Raw deletion trashes the Drive folder because the service account lacks permanent-delete rights. A separate production Supabase project is still required before launch.
+**Carried forward:** Approval to begin Phase 11. Per-agency Drive credentials need a refactor of `lib/drive/auth.ts` (currently one global service account).
+
+### 5 Oct 2026 — Phase 7 development
+**Phase:** 7 (development complete; verification pending)
+**Done:** Migration `010_phase7_posting.sql` (one post per item; transactional schedule, edit, mark-posted and 24-hour undo functions, service-role only). Live `/admin/posting` and `/manager/posting` (month grid, chronological day panel with full captions, text-labelled posted/upcoming/overdue, role-scoped); scheduling from `client_approved` with a multi-line caption and count, music reference, IST entry and UTC storage, dismissible same-client-within-an-hour warning; editing before posting; presigned download of the latest client-approved cut as `client-idea-name-vN.mp4`, logged; mark posted (past dates allowed) and undo within 24 hours, logged; overdue/today/this-week lists with empty states; overdue count on the posting screen and an admin Clients metric card. The generic status route and planner dropdown no longer offer `scheduled` or `posted`. TypeScript, lint, production build and four new format tests pass; `scripts/verify-phase7-migration.mjs` passed rollback-only against the live database.
+**Not done:** Migration not applied. No browser, role-session, real download (needs a real B2 cut), mobile Safari/Chrome or hand-run SQL scope comparison yet. See `ashmeet-smma/docs/phase-7-audit.md`.
+**Deviations:** Scope delivered still counts by the item's planned month. `posted_at` is the marking time. Admin metric card sits on the Clients page; Team page cards stay Phase 9 fixtures.
+**Carried forward:** Apply the migration, run the Phase 7 checkpoints, then the Phase 6 ones. Phase 8 notifications could alert on overdue posts.
+
+### 5 Oct 2026 — Phase 6 development
+**Phase:** 6 (development complete; verification by the other developer)
+**Done:** Migration `009_phase6_review.sql` (comment transcript status and edit time; link attempt counter and lock; `approval_link_views`; service-role-only review, reopen, link create/revoke, PIN attempt, view and client-respond functions; `phase5_complete_cut` now accepts resubmission from `changes_requested` and `client_changes`). Timestamped comments bound to a version with edit/delete by author, resolve and filters; in-browser voice notes (2-minute cap, presigned B2 upload, separate transcription step with Retry); internal Approve / Send changes in Editors' den; magic links (32-byte token and 4-digit PIN, hashes only, 7-day expiry, one version, regenerate/revoke, shown once); public mobile-first `/approve/[token]` with PIN, five-failure lock, distinct failure states, view logging and Approve / Request changes; verbatim client text, manager notification card, reopen from `client_approved`; editor Re-do now shows the latest cut with all comments, voice notes and client text. TypeScript, lint, production build and three new token/session unit tests pass; public routes smoke-tested for invalid-token and signed-out responses. Details and the checkpoint map are in `ashmeet-smma/docs/phase-6-audit.md`.
+**Migration update:** Owner approved; `scripts/verify-phase6-migration.mjs` (rollback-only) passed, then `009` was committed in one transaction. Read-only check confirmed the seven `phase6_*` functions, the four new columns and `approval_link_views`; existing counts unchanged (8 comments, 5 links).
+**Not done:** The app's Phase 6 screens and routes have not been exercised against the live database. No transcription key is set. All six checkpoints, a real phone, a real microphone and B2 voice-note CORS for the production origin are untested. `isolation.test.ts` still needs `TEST_DATABASE_URL`.
+**Deviations:** Transcription uses any OpenAI-compatible endpoint (default `whisper-1`; no new dependency). In-app notification is an "Updates" card in Editors' den, not the bell (Phase 8). The planner status control and generic status route no longer offer review-owned states. A client's later change after approval is relayed by the manager through Reopen; the link accepts one response.
+**Carried forward:** Apply migration; run the rollback check, then the full Phase 6 self-audit; optionally `scripts/seed-phase6-links.mjs --apply` to open the seeded expired/revoked/responded links; add the production origin to the B2 CORS rule before launch; Phase 8 should replace the Updates card with the bell and push.
 
 ### 4 Oct 2026 — Phase 5 implementation prepared
 **Phase:** 5 (in progress)
@@ -250,7 +286,6 @@ Anything decided during a session that isn't already in `context.md` or `techsta
 
 ## Not yet designed
 
-- Client magic-link approval page (needed before Phase 6)
 - RapidArc platform console (Phase 11)
 
 ---
