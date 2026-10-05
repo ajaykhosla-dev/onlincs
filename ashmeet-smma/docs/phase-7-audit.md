@@ -1,6 +1,6 @@
 # Phase 7 posting schedule audit
 
-Status: development complete; **not verified, migration not yet applied**. A rollback-only run of `010_phase7_posting.sql` against the live database passed. Phase 7 is not complete until the checkpoints below are run for real.
+Status (5 Oct 2026): migration `010_phase7_posting.sql` is applied live. Rollback-only database checks and the temporary live HTTP/Edge checks in `scripts/qa-phase6-7-live.mjs` pass. The posting screen's 390px horizontal overflow was fixed in `src/styles/theme.css` and `src/styles/screens/console-manager.css`; production build and browser recheck pass. A few device and interaction checks remain.
 
 ## What was built
 
@@ -13,11 +13,12 @@ Status: development complete; **not verified, migration not yet applied**. A rol
 - **Mark posted / undo** (`POST /api/posting/[id]/posted`): sets `posted_at` and `posted_by`, item to `posted`, logged. Past-dated posts are allowed. Undo works within 24 hours (logged as `post_unmarked`, `reversal: true`) and is blocked after, with an explanation. Scope delivered is derived live from items at `posted`, so it moves by exactly one with each mark and undo.
 - **Overdue and upcoming**: unposted posts past their time, oldest first with days late; today and next 7 days; empty states. The count appears on the posting screen's metric card and as an "Overdue posts" card on the admin Clients page.
 
-## To verify (other developer)
+## Live verification and remaining checks
 
-1. Apply: `node --env-file=.env.local scripts/apply-phase7-migration.mjs --apply` (needs owner approval). Rollback-only check: `scripts/verify-phase7-migration.mjs` (passed 5 Oct 2026).
-2. Walk the five checkpoints in `phase-7-posting-schedule.md` in a browser. Download needs a real B2 object for a `client_approved` version, so run it on an item taken through Phase 6 with a real cut. A stale URL returning 403 and mobile Safari/Chrome behaviour are untested.
-3. Scope delivered vs hand-run SQL for all six clients: the app counts items at `posted` whose `planned_date` is in the month (`clientDashboard`); compare with `select client_id, count(*) from content_items where status='posted' and planned_date >= :start and planned_date < :end group by 1`.
+1. Migration 010 exists live; `node --env-file=.env.local scripts/verify-phase7-migration.mjs` passed its rollback-only checks on 5 Oct 2026.
+2. Temporary live records passed scheduling only from `client_approved`, a clear rejection for `client_changes`, a multiline caption over 2,000 characters, overdue and manager-scoped grid API data, nearby-post warning data, editing time/caption/music, and real B2 final-cut ranged download with attachment filename. Headless Edge at 390px showed the manager posting screen and live overdue post with no horizontal overflow after the CSS fix. Selecting the post's calendar day displayed the full long caption without overflow.
+3. Mark posted increased delivered by one, cleared overdue, and undo restored the scheduled state and delivered count. Undo after 25 hours returned 409. The `/api/clients` delivered values matched hand-run SQL for every client in the agency during the test.
+4. Still check form interactions (nearby warning display/dismissal, edit and posted controls) in a real browser session. Check the final-cut download on a physical phone, and the B2 URL's actual expiry after five minutes. Safari/Chrome phone behavior was not exercised here.
 
 ## Deviations
 

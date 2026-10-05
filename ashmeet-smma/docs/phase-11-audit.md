@@ -1,6 +1,6 @@
 # Phase 11 platform console audit
 
-Status: development complete, migration `013` applied live. Everything that can be checked without a second agency's real Google and Backblaze accounts, and without a signed-in platform owner, has been checked. The console itself has not yet been used by a person.
+Status (5 Oct 2026): development complete, migration `013` applied live. Database and temporary-owner TOTP/console checks pass. Real owner sign-in, second-agency credentials, and support/lifecycle browser journeys remain.
 
 ## What was built
 
@@ -23,11 +23,12 @@ Status: development complete, migration `013` applied live. Everything that can 
 - `tests/isolation.test.ts` extended (20 tests, all pass on the live database): platform-only tables unreadable by every API role, each agency admin sees only its own platform audit trail, a cut event in one agency creates no notification in another, and no notification, link, comment, post or raw file points across agencies.
 - Unit tests: credential parsing in every pasted shape, support-session read-only and elevation rules (including a replayed session cookie, another session's elevation, expired and tampered cookies).
 - TOTP enrolment works on this Supabase project (probed with a throwaway user, since removed).
-- Smoke test of the built app: `/platform` redirects a signed-out visitor to login, `/api/platform/*` returns 403, a forged support cookie grants nothing. Full suite 80 of 80, route audit 64 routes with none unprotected, client bundle scan clean.
+- Smoke test of the built app: `/platform` redirects a signed-out visitor to login, `/api/platform/*` returns 403, a forged support cookie grants nothing. Full suite 81 of 81, route audit 64 routes with none unprotected, client bundle scan clean.
+- Live recheck: migration rollback test passed; `npm run verify:tenants` passed 30 assertions with a temporary agency that was removed; full suite passed 81/81. A temporary platform owner was denied the console API at AAL1, completed real Supabase TOTP enrollment and challenge, reached AAL2, and loaded the platform agency list/API in Edge. A temporary agency admin was denied. The QA identities and agency were removed. See `scripts/qa-phase8-11-http.mjs`.
 
 ## Not verified (needs a person or a second set of real accounts)
 
-1. **Create the platform owner** (none exists yet): `node --env-file=.env.local scripts/create-platform-owner.mjs <email> "<name>" --apply`, sign in with that Google account, complete two-factor setup. Then walk the console in a browser: onboarding, details, credentials, test connection, support session, suspension, export.
+1. **Create the real platform owner** (none exists yet): `node --env-file=.env.local scripts/create-platform-owner.mjs <email> "<name>" --apply`, sign in with that Google account, complete two-factor setup. The temporary TOTP/console journey passed; the real owner still needs to walk onboarding, details, credentials, test connection, support session, suspension and export in a browser.
 2. **Two genuinely separate agencies with their own Google and Backblaze accounts.** The cross-agency Drive and B2 isolation is proven at the routing level (which credentials sign which key) but not against real second accounts: agency A's service account being refused on agency B's Shared Drive, and A's B2 key being refused on B's prefix, depend on how those accounts are set up. "Test connection" reports whether a B2 key is restricted to the agency's prefix.
 3. The invitation email actually arriving (depends on the Supabase project's email settings; the fallback path is in place).
 4. A suspended agency's users being turned away in a real browser (the rule is enforced at login and on every request; not clicked through).

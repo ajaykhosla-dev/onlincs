@@ -5,7 +5,7 @@
 }
 .r-console .scope-banner svg{width:15px;height:15px}
 
-.r-console .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.r-console .cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
 .r-console .cal-dow{font-size:11px;font-weight:700;color:var(--muted);text-align:center;padding:6px 0}
 .r-console .cal-day{min-height:86px;border-radius:14px;background:var(--tint);padding:8px;display:flex;flex-direction:column;gap:4px;text-align:left;position:relative}
 .r-console .cal-day:hover{background:#EFEFF9}

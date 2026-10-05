@@ -1,6 +1,6 @@
 # Phase 6 review and approval audit
 
-Status: development complete; **not verified**. Migration `009_phase6_review.sql` has not been applied to any database and has not been run against one. Phase 6 is not complete until the other developer's checkpoint pass is green.
+Status (5 Oct 2026): migration `009_phase6_review.sql` is applied live. Rollback-only database checks and the temporary live HTTP/Edge checks in `scripts/qa-phase6-7-live.mjs` pass. Real microphone and phone checks, and successful transcription, remain open.
 
 ## What was built
 
@@ -15,14 +15,14 @@ Status: development complete; **not verified**. Migration `009_phase6_review.sql
 - **Editor Re-do**: lists `with_editor`, `changes_requested` and `client_changes` items with versions; shows the latest cut and its comments (voice notes, transcripts, client text) read-only; the editor can mark comments resolved and upload the next cut.
 - The generic planner status route and dropdown no longer offer `changes_requested`, `internally_approved`, `with_client`, `client_changes` or `client_approved`; those states are reachable only through the review routes above.
 
-## Not done / needs the other developer
+## Live verification and remaining checks
 
-1. ~~Apply the migration~~ Done: migration 009 is applied live (confirmed 5 Oct 2026; `approval_link_views` and the `phase6_*` functions exist).
-2. Rollback-only check of the SQL: `node --env-file=.env.local scripts/verify-phase6-migration.mjs` (passed 5 Oct 2026).
-3. Set `TRANSCRIPTION_API_KEY` (and optionally `TRANSCRIPTION_API_URL`, `TRANSCRIPTION_MODEL`). Any OpenAI-compatible `/audio/transcriptions` endpoint works; the default is OpenAI `whisper-1`. Without a key every transcript shows "unavailable" with Retry, which is also the way to test the forced-failure checkpoint.
-4. B2 CORS: the voice-note PUT goes browser to B2. The Phase 5 rule already allows PUT from localhost; the production origin must be added before launch.
-5. Optional QA data: `node --env-file=.env.local scripts/seed-phase6-links.mjs --apply` gives the four seeded links real tokens and PIN 1234 so the expired, revoked and responded screens can be opened. The seeded active link (`al-1`) belongs to an item still `with_editor`, so responding on it correctly fails; test responses on a link generated from a real approved item.
-6. All six phase checkpoints, including a real phone on a network with no session and a real microphone, are untested.
+1. Migration 009 exists live; `node --env-file=.env.local scripts/verify-phase6-migration.mjs` passed its rollback-only checks on 5 Oct 2026.
+2. Temporary admin, manager, other-manager, and editor identities passed role/JWT checks. On a real B2 MP4, the live routes passed timed comments, author-only edit, resolve/reopen, version isolation, reviewer decision, editor Re-do, approval, one-time token/PIN, 5-attempt lock, revoked/expired/responded states, media range requests, client approval/changes, and manager reopen. Temporary data and B2 objects were removed by the QA script.
+3. Headless Edge at 390px showed the public client page with player and actions, no horizontal overflow, and played the MP4. This is a browser emulation, not a physical phone check.
+4. Voice-note presign, B2 PUT, saved comment, editor playback URL, and the transcription failure state passed. The test uploaded an MP4 fixture; the actual microphone/MediaRecorder UI and microphone permission errors still need a device/browser check.
+5. `TRANSCRIPTION_API_KEY` is absent from `.env.local`, so successful speech-to-text cannot be verified. Configure a provider and test a spoken note, retry, and saved transcript. The failure state was verified and preserves the comment/audio.
+6. B2 PUT works from the QA client. Verify browser CORS for voice uploads and add the production origin before launch. Check the public page on an actual phone without a workspace session.
 
 ## Deviations from the phase file
 
