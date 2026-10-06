@@ -1,5 +1,6 @@
 /**
- * Creates the hourly pg_cron job that calls /api/cron/staleness, plus a once-a-minute push flush.
+ * Creates the hourly pg_cron jobs that call /api/cron/staleness and /api/cron/phase4 (Drive sync).
+ * They run from Supabase rather than Vercel because Vercel's Hobby plan only allows daily crons.
  * Run once the app has a public URL:
  *   node --env-file=.env.local scripts/schedule-staleness-cron.mjs https://your-app.example.com          (dry run)
  *   node --env-file=.env.local scripts/schedule-staleness-cron.mjs https://your-app.example.com --apply
@@ -13,7 +14,8 @@ const base = url.replace(/\/$/, '')
 const secret = process.env.CRON_SECRET
 if (!secret) { console.error('CRON_SECRET is not set.'); process.exit(1) }
 const call = (path) => `select net.http_post(url := '${base}${path}', headers := jsonb_build_object('Authorization', 'Bearer ${secret}', 'Content-Type', 'application/json'), body := '{}'::jsonb, timeout_milliseconds := 25000)`
-const jobs = [['staleness-hourly', '0 * * * *', call('/api/cron/staleness')]]
+const get = (path) => `select net.http_get(url := '${base}${path}', headers := jsonb_build_object('Authorization', 'Bearer ${secret}'), timeout_milliseconds := 25000)`
+const jobs = [['staleness-hourly', '0 * * * *', call('/api/cron/staleness')], ['phase4-sync-hourly', '0 * * * *', get('/api/cron/phase4')]]
 if (!process.argv.includes('--apply')) { for (const [name, schedule] of jobs) console.log(`Dry run: would schedule ${name} at "${schedule}" against ${base}`); process.exit(0) }
 
 const db = new pg.Client({ connectionString: process.env.TEST_DATABASE_URL, ssl: { rejectUnauthorized: false } })
