@@ -1,39 +1,29 @@
 /* eslint-disable @next/next/no-img-element -- a data-URL QR code and an agency-supplied logo URL cannot go through next/image */
 'use client'
 
-import { useState, type ReactNode } from 'react'
-import { IconBell, IconGear, IconMoon, IconSearch, IconSun } from './icons'
-import { NotificationBell } from './NotificationBell'
+import type { ReactNode } from 'react'
+import { IconSearch } from './icons'
 import { SignOutButton } from './SignOutButton'
 
 export type TopNavTab = { label: string; icon: ReactNode; active?: boolean }
 
 /**
  * Top navigation. Every slot is optional: Editor and Cameraman use a reduced version.
- * The Light/Dark segment is visual only (no persistence), exactly as in the prototype.
  */
 export function TopNav({
   tabs,
   searchPlaceholder,
-  appearance = true,
-  bell = true,
-  gearLabel,
   user,
   agency,
   children,
 }: {
   tabs?: TopNavTab[]
   searchPlaceholder?: string
-  appearance?: boolean
-  bell?: boolean
-  gearLabel?: string
   user?: { full_name: string; initials: string; avatar_gradient: string }
   /** Light white-labelling: this agency's display name and logo. */
   agency?: { name: string; logo_url: string | null }
   children?: ReactNode
 }) {
-  const [mode, setMode] = useState<'light' | 'dark'>('light')
-
   return (
     <nav className="topnav">
       {tabs?.map((t) => (
@@ -51,6 +41,7 @@ export function TopNav({
       )}
 
       <div className="nav-right">
+        {children}
         {agency && <div className="nav-agency" title={agency.name}>{agency.logo_url && <img src={agency.logo_url} alt="" width={22} height={22} />}<span>{agency.name}</span></div>}
         {user && (
           <div className="nav-user" aria-label={`Signed in as ${user.full_name}`}>
@@ -59,29 +50,6 @@ export function TopNav({
           </div>
         )}
         {user && <SignOutButton variant="topnav" />}
-        {appearance && (
-          <div className="seg" role="group" aria-label="Appearance">
-            <button type="button" className={mode === 'light' ? 'is-active' : undefined} onClick={() => setMode('light')}>
-              <IconSun />
-              Light
-            </button>
-            <button type="button" className={mode === 'dark' ? 'is-active' : undefined} onClick={() => setMode('dark')}>
-              <IconMoon />
-              Dark
-            </button>
-          </div>
-        )}
-        {bell && (user ? <NotificationBell /> : (
-          <button type="button" className="ghost" aria-label="Notifications">
-            <IconBell />
-          </button>
-        ))}
-        {gearLabel && (
-          <button type="button" className="ghost" aria-label={gearLabel}>
-            <IconGear />
-          </button>
-        )}
-        {children}
       </div>
     </nav>
   )

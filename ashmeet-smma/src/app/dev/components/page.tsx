@@ -60,7 +60,7 @@ export default function ComponentsScratchPage() {
 
       <Section title="TopNav: full, then reduced">
         <div className="shell" style={{ minHeight: 0, display: 'block' }}>
-          <TopNav tabs={[{ label: 'Clients', icon: <IconClients />, active: true }, { label: 'Pipeline', icon: <IconCalendar /> }]} searchPlaceholder="Search" gearLabel="Settings">
+          <TopNav tabs={[{ label: 'Clients', icon: <IconClients />, active: true }, { label: 'Pipeline', icon: <IconCalendar /> }]} searchPlaceholder="Search">
             <button type="button" className="btn-dark">
               <IconPlus />
               Add client

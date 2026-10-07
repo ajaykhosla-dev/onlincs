@@ -23,7 +23,7 @@ export default async function ManagerLayout({ children }: { children: React.Reac
       <div className="shell">
         <Rail initials={user.initials} {...navigation} />
         <main className="main">
-          <TopNav searchPlaceholder="Search your clients or shoots" gearLabel="Profile settings" user={user} agency={brand}>
+          <TopNav searchPlaceholder="Search your clients or shoots" user={user} agency={brand}>
             <ExportButton />
             <ScheduleShootButton />
           </TopNav>

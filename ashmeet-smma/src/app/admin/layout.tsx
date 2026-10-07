@@ -2,11 +2,6 @@ import { Rail, TopNav } from '@/components/shared'
 import { PwaPrompts } from '@/components/pwa/PwaPrompts'
 import { AddClientButton } from '@/components/console/AddClientButton'
 import { ExportButton } from '@/components/console/ExportButton'
-import {
-  IconClients,
-  IconPerformance,
-  IconPipeline,
-} from '@/components/shared/icons'
 import { navBadges } from '@/lib/auth/badges'
 import { agencyBrand } from '@/lib/auth/brand'
 import { SupportBanner } from '@/components/platform/SupportBanner'
@@ -29,13 +24,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <Rail initials={user.initials} {...navigation} />
         <main className="main">
           <TopNav
-            tabs={[
-              { label: 'Clients', icon: <IconClients w={2} />, active: true },
-              { label: 'Pipeline', icon: <IconPipeline /> },
-              { label: 'Performance', icon: <IconPerformance /> },
-            ]}
             searchPlaceholder="Search clients or shoots"
-            gearLabel="Settings"
             user={user} agency={brand}
           >
             <ExportButton />

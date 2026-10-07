@@ -21,7 +21,7 @@ export default async function CameramanLayout({ children }: { children: React.Re
       <div className="shell">
         <Rail initials={user.initials} {...navigation} />
         <main className="main">
-          <TopNav appearance={false} user={user} agency={brand} />
+          <TopNav user={user} agency={brand} />
           <OfflineBanner />
           {children}
         </main>
