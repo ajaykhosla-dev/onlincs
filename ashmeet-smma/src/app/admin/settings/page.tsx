@@ -52,15 +52,17 @@ export default async function AdminSettingsPage() {
           </div>
           <div className="field">
             <label htmlFor="ag-name">Agency name</label>
-            <input id="ag-name" type="text" defaultValue="Ashmeet SMMA" />
+            <input id="ag-name" type="text" placeholder="Enter agency name" defaultValue="Ashmeet SMMA" />
           </div>
-          <div className="field">
-            <label htmlFor="ag-owner">Owner</label>
-            <input id="ag-owner" type="text" defaultValue="Ashmeet Chaurasia" />
-          </div>
-          <div className="field" style={{ marginBottom: 0 }}>
-            <label htmlFor="ag-city">Location</label>
-            <input id="ag-city" type="text" defaultValue="Ludhiana, Punjab" />
+          <div className="field-row">
+            <div className="field" style={{ marginBottom: 0 }}>
+              <label htmlFor="ag-owner">Owner</label>
+              <input id="ag-owner" type="text" placeholder="Enter owner name" defaultValue="Ashmeet Chaurasia" />
+            </div>
+            <div className="field" style={{ marginBottom: 0 }}>
+              <label htmlFor="ag-city">Location</label>
+              <input id="ag-city" type="text" placeholder="Enter city (optional)" defaultValue="Ludhiana, Punjab" />
+            </div>
           </div>
         </section>
 

@@ -226,18 +226,18 @@ export function LivePosting({ banner, intro }: { banner?: ReactNode; intro: stri
       footer={<><button type="button" className="btn-soft" onClick={() => setModal(null)}>Cancel</button>
         <button type="button" className="btn-dark" disabled={busy === 'save'} onClick={() => void save()}>{busy === 'save' ? 'Saving…' : modal?.mode === 'edit' ? 'Save changes' : 'Schedule'}</button></>}>
       <div>
-        {modal?.mode === 'schedule' && <div className="field"><label htmlFor="post-item">Client-approved item</label>
+        {modal?.mode === 'schedule' && <div className="field"><label htmlFor="post-item">Client-approved item <span className="req">*</span></label>
           <select id="post-item" value={form.itemId} onChange={(event) => update({ itemId: event.target.value })}>
             {data?.schedulable.map((item) => <option key={item.id} value={item.id}>{item.client_name} · {item.title} ({item.type})</option>)}</select></div>}
-        <div className="field"><label htmlFor="post-date">Date (IST)</label><input id="post-date" type="date" value={form.date} onChange={(event) => update({ date: event.target.value })} /></div>
-        <div className="field"><label htmlFor="post-time">Time (IST)</label><input id="post-time" type="time" value={form.time} onChange={(event) => update({ time: event.target.value })} /></div>
+        <div className="field-row"><div className="field"><label htmlFor="post-date">Date (IST) <span className="req">*</span></label><input id="post-date" type="date" value={form.date} onChange={(event) => update({ date: event.target.value })} /></div>
+        <div className="field"><label htmlFor="post-time">Time (IST) <span className="req">*</span></label><input id="post-time" type="time" value={form.time} onChange={(event) => update({ time: event.target.value })} /></div></div>
         {nearby.length > 0 && !warnDismissed && <div className="cm-block cm-issued" role="alert" style={{ marginBottom: 12 }}>
           <p><b>Heads up:</b> this client already has {nearby.length === 1 ? 'a post' : `${nearby.length} posts`} within an hour of this time: {nearby.map((post) => `${post.title} at ${istTime(post.scheduled_at)}`).join(', ')}. You can still save.</p>
           <div className="cm-actions"><button type="button" className="btn-soft" onClick={() => setWarnDismissed(true)}>Dismiss</button></div></div>}
         <div className="field"><label htmlFor="post-caption">Caption</label>
-          <textarea id="post-caption" rows={9} value={form.caption} onChange={(event) => update({ caption: event.target.value })} style={{ whiteSpace: 'pre-wrap' }} aria-describedby="post-caption-count" />
+          <textarea id="post-caption" rows={9} placeholder="Write the caption (optional)" value={form.caption} onChange={(event) => update({ caption: event.target.value })} style={{ whiteSpace: 'pre-wrap' }} aria-describedby="post-caption-count" />
           <small id="post-caption-count" aria-live="polite">{form.caption.length.toLocaleString('en-IN')} characters{form.caption.length > CAPTION_LIMIT ? ` · over Instagram's ${CAPTION_LIMIT.toLocaleString('en-IN')} limit` : ` · Instagram allows ${CAPTION_LIMIT.toLocaleString('en-IN')}`}</small></div>
-        <div className="field"><label htmlFor="post-music">Background music reference</label><input id="post-music" value={form.music} maxLength={300} onChange={(event) => update({ music: event.target.value })} /></div>
+        <div className="field"><label htmlFor="post-music">Background music reference</label><input id="post-music" placeholder="Song or audio link (optional)" value={form.music} maxLength={300} onChange={(event) => update({ music: event.target.value })} /></div>
         {formError && <p role="alert" className="rv-error">{formError}</p>}
       </div>
     </Modal>
