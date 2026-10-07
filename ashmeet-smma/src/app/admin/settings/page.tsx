@@ -2,7 +2,10 @@ import { StorageView } from '@/components/console/StorageView'
 import { requireGroupUser } from '@/lib/auth/session'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { Avatar, DataTable, Tag, type Column } from '@/components/shared'
-import { team, type TeamMember } from '@/lib/fixtures/console'
+import type { User } from '@/types/database'
+import { InviteMemberButton } from '@/components/console/InviteMemberButton'
+
+type TeamMember = Pick<User, 'id' | 'full_name' | 'initials' | 'role' | 'avatar_gradient' | 'email'>
 import { settingsRoles } from '@/lib/fixtures/console-screens'
 
 const columns: Column<TeamMember>[] = [
@@ -15,24 +18,14 @@ const columns: Column<TeamMember>[] = [
       </div>
     ),
   },
-  { header: 'Role', cell: (m) => <Tag variant={settingsRoles[m.role].tone}>{settingsRoles[m.role].label}</Tag> },
+  { header: 'Role', cell: (m) => <Tag variant={settingsRoles[m.role]?.tone ?? 'grey'}>{settingsRoles[m.role]?.label ?? m.role}</Tag> },
   { header: 'Email', cell: (m) => m.email, tdStyle: { fontSize: '12.5px', color: 'var(--ink-soft)' } },
-  {
-    header: '',
-    cell: (m) => (
-      <button type="button" className="kebab" aria-label={`Actions for ${m.full_name}`}>
-        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <circle cx="12" cy="5" r="1.7" />
-          <circle cx="12" cy="12" r="1.7" />
-          <circle cx="12" cy="19" r="1.7" />
-        </svg>
-      </button>
-    ),
-  },
 ]
 
 export default async function AdminSettingsPage() {
   const user = await requireGroupUser('admin')
+  const { data: members } = await supabaseAdmin.from('users').select('id,full_name,initials,role,avatar_gradient,email').eq('agency_id', user.agency_id).eq('is_active', true).neq('role', 'platform_owner').order('created_at')
+  const team = (members ?? []) as TeamMember[]
   const { data: platform } = await supabaseAdmin.from('activity_log').select('id,action,created_at,metadata').eq('agency_id', user.agency_id).eq('entity_type', 'platform').order('created_at', { ascending: false }).limit(20)
   return (
     <>
@@ -119,9 +112,7 @@ export default async function AdminSettingsPage() {
         <div className="card-head">
           <div className="card-title">Team members</div>
           <div className="card-tools">
-            <button type="button" className="btn-dark" style={{ height: 36, padding: '0 16px' }}>
-              Invite member
-            </button>
+            <InviteMemberButton />
           </div>
         </div>
         <DataTable columns={columns} rows={team} rowKey={(m) => m.id} />

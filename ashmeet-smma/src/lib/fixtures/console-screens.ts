@@ -120,7 +120,7 @@ export const teamPerformance: PerformanceRow[] = [
 
 /** Settings > Team members: the owner is labelled "Owner", managers sky, the rest grey. */
 export const settingsRoles: Record<string, { label: string; tone: Tone }> = {
-  admin: { label: 'Owner', tone: 'lav' },
+  admin: { label: 'Admin', tone: 'lav' },
   brand_manager: { label: 'Brand Manager', tone: 'sky' },
   editor: { label: 'Editor', tone: 'grey' },
   cameraman: { label: 'Cameraman', tone: 'grey' },
