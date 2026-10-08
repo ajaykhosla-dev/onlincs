@@ -56,3 +56,9 @@
 .r-editor .folder-meta{font-size:11.5px;color:var(--muted);margin-top:4px}
 
 @media (max-width:900px){ .r-editor .instr-compare{grid-template-columns:1fr} }
+@media (max-width:760px){
+  .r-editor .task-card{padding:14px 16px;gap:12px;flex-wrap:wrap}
+  .r-editor .brief-row{flex-direction:column;gap:2px}
+  .r-editor .brief-row b{width:auto}
+  .r-editor .folder-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+}

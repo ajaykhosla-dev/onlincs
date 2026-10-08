@@ -1,11 +1,13 @@
 /* Service worker: web push, notification clicks and a small offline layer.
  * Bump VERSION on any change to this file. The browser re-fetches sw.js on every visit (it is served no-cache),
  * and a new version takes over without a manual cache clear (skipWaiting + clients.claim + old caches deleted). */
-const VERSION = 'v2'
+const VERSION = 'v3'
 const STATIC_CACHE = `static-${VERSION}`
 const PAGE_CACHE = `pages-${VERSION}`
 const OFFLINE_URL = '/offline.html'
 const CAMERAMAN_PAGE = /^\/cameraman(\/|$)/
+// `next dev` reuses chunk names across edits, so cache-first would pin stale CSS and JS locally.
+const IS_DEV = ['localhost', '127.0.0.1'].includes(self.location.hostname)
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(STATIC_CACHE).then((cache) => cache.addAll([OFFLINE_URL, '/icons/icon-192.png', '/icons/icon-512.png'])).then(() => self.skipWaiting()))
@@ -31,7 +33,7 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/auth/') || url.pathname.startsWith('/approve/')) return
 
   // Built assets are content-hashed: cache first.
-  if (url.pathname.startsWith('/_next/static/') || url.pathname.startsWith('/icons/')) {
+  if (!IS_DEV && (url.pathname.startsWith('/_next/static/') || url.pathname.startsWith('/icons/'))) {
     event.respondWith(caches.open(STATIC_CACHE).then(async (cache) => {
       const hit = await cache.match(request)
       if (hit) return hit

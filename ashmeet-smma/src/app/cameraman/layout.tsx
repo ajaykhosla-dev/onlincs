@@ -1,7 +1,6 @@
 import { Rail, TopNav } from '@/components/shared'
 import { PwaPrompts } from '@/components/pwa/PwaPrompts'
 import { OfflineBanner } from '@/components/cameraman/OfflineBanner'
-import { TabBar } from '@/components/cameraman/TabBar'
 import { navBadges } from '@/lib/auth/badges'
 import { agencyBrand } from '@/lib/auth/brand'
 import { SupportBanner } from '@/components/platform/SupportBanner'
@@ -26,7 +25,6 @@ export default async function CameramanLayout({ children }: { children: React.Re
           {children}
         </main>
       </div>
-      <TabBar />
       <PwaPrompts />
     </div>
   )

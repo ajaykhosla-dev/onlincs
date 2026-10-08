@@ -2,7 +2,7 @@
 .r-cam{font-size:15px}
 
 
-.r-cam .main{padding:20px 18px 96px;display:flex;flex-direction:column;min-height:100vh}
+.r-cam .main{padding:16px 16px calc(96px + env(safe-area-inset-bottom));display:flex;flex-direction:column;min-height:100vh}
 
 .r-cam .rail{display:none}
 @media (min-width:761px){
@@ -209,14 +209,14 @@
 .r-cam .pending-title{font-size:15px;font-weight:800}
 .r-cam .pending-meta{font-size:15px;margin-top:3px;opacity:.85}
 .r-cam .chev{width:20px;height:20px;color:var(--muted);flex-shrink:0}
-.r-cam #screen-pending{padding:22px 18px}
+.r-cam #screen-pending{padding:4px 0}
 @media (min-width:761px){ .r-cam #screen-pending{padding:28px} }
 .r-cam #screen-upload{overflow-y:auto;flex:1;min-height:0;width:100%}
 
 /* ---- Deviation from cameraman.html (Phase 1, checkpoint 7): on mobile, readable UI text is at least 15px.
    The time-grid micro-labels (hour labels, event captions, weekday heads) keep the prototype's sizes; see progress.md. ---- */
 @media (max-width:760px){
-  .r-cam .tabbar-btn span,
+  .r-cam .tabbar-btn > span:last-child,
   .r-cam .strip-dow,
   .r-cam .strip-num,
   .r-cam .today-pill,

@@ -49,3 +49,12 @@
 .r-console .check-row input{width:16px;height:16px;accent-color:var(--violet)}
 
 @media (max-width:1220px){ .r-console .review-layout{grid-template-columns:1fr} }
+/* Phones; lives here because this sheet loads after console-admin.css. */
+@media (max-width:760px){
+  .r-console .den-row{padding:14px 16px;gap:12px;flex-wrap:wrap}
+  .r-console .den-deadline{width:auto}
+  .r-console .settings-row{gap:12px;align-items:flex-start}
+  .r-console .settings-row > :first-child{min-width:0}
+  .r-console .cal-day{min-height:58px;padding:5px;border-radius:10px}
+  .r-console .cal-grid{gap:4px}
+}

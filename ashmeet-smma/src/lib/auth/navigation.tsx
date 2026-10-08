@@ -20,11 +20,11 @@ export function navigationFor(user: User, group: WorkspaceGroup, badges: NavBadg
         items: [
           { key: 'clients', label: 'Clients', href: '/admin/clients', icon: <IconClients /> },
           { key: 'calendar', label: 'Calendar', href: '/admin/calendar', icon: <IconCalendar /> },
-          { key: 'den', label: "Editors' den", href: '/admin/den', icon: <IconDen />, badge: badges.den || undefined },
+          { key: 'den', label: "Editors' den", short: 'Den', href: '/admin/den', icon: <IconDen />, badge: badges.den || undefined },
           { key: 'library', label: 'Library', href: '/admin/library', icon: <IconLibrary /> },
-          { key: 'posting', label: 'Posting schedule', href: '/admin/posting', icon: <IconClock /> },
-          { key: 'planner', label: 'Content planner', href: '/admin/planner', icon: <IconPlanner /> },
-          { key: 'scope', label: 'Scope of work', href: '/admin/scope', icon: <IconPerformance /> },
+          { key: 'posting', label: 'Posting schedule', short: 'Posting', href: '/admin/posting', icon: <IconClock /> },
+          { key: 'planner', label: 'Content planner', short: 'Planner', href: '/admin/planner', icon: <IconPlanner /> },
+          { key: 'scope', label: 'Scope of work', short: 'Scope', href: '/admin/scope', icon: <IconPerformance /> },
           { key: 'team', label: 'Team', href: '/admin/team', icon: <IconTeam /> },
         ],
         foot: [{ key: 'settings', label: 'Settings', href: '/admin/settings', icon: <IconSettings /> }],
@@ -33,10 +33,10 @@ export function navigationFor(user: User, group: WorkspaceGroup, badges: NavBadg
       return { items: [
         { key: 'clients', label: 'Clients', href: '/manager/clients', icon: <IconClients /> },
         { key: 'calendar', label: 'Calendar', href: '/manager/calendar', icon: <IconCalendar /> },
-        { key: 'den', label: "Editors' den", href: '/manager/den', icon: <IconDen />, badge: badges.den || undefined },
-        { key: 'posting', label: 'Posting schedule', href: '/manager/posting', icon: <IconClock /> },
-        { key: 'planner', label: 'Content planner', href: '/manager/planner', icon: <IconPlanner /> },
-        { key: 'scope', label: 'Scope of work', href: '/manager/scope', icon: <IconPerformance /> },
+        { key: 'den', label: "Editors' den", short: 'Den', href: '/manager/den', icon: <IconDen />, badge: badges.den || undefined },
+        { key: 'posting', label: 'Posting schedule', short: 'Posting', href: '/manager/posting', icon: <IconClock /> },
+        { key: 'planner', label: 'Content planner', short: 'Planner', href: '/manager/planner', icon: <IconPlanner /> },
+        { key: 'scope', label: 'Scope of work', short: 'Scope', href: '/manager/scope', icon: <IconPerformance /> },
         { key: 'storage', label: 'Storage', href: '/manager/storage', icon: <IconLibrary /> },
       ] }
     case 'editor':
@@ -48,7 +48,7 @@ export function navigationFor(user: User, group: WorkspaceGroup, badges: NavBadg
     case 'cameraman':
       return { items: [
         { key: 'shoots', label: 'Calendar', href: '/cameraman/shoots', icon: <IconCalendar /> },
-        { key: 'pending', label: 'Pending uploads', href: '/cameraman/pending', icon: <IconUpload />, badge: badges.pending || undefined },
+        { key: 'pending', label: 'Pending uploads', short: 'Pending', href: '/cameraman/pending', icon: <IconUpload />, badge: badges.pending || undefined },
       ] }
     default:
       return { items: [] }

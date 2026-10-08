@@ -1272,25 +1272,55 @@ tbody td:last-child { border-radius: 0 16px 16px 0; }
   bottom: 0;
   left: 0;
   right: 0;
-  background: var(--surface);
-  border-top: 1px solid #F1F1F8;
-  padding: 8px 0;
+  background: rgba(255,255,255,.96);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid #ECEBF6;
+  box-shadow: 0 -6px 24px rgba(27,27,58,.06);
+  padding: 6px 6px calc(6px + env(safe-area-inset-bottom));
   z-index: 40;
   justify-content: space-around;
 }
+.tabbar.is-scroll {
+  justify-content: flex-start;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+.tabbar.is-scroll::-webkit-scrollbar { display: none; }
 .tabbar-btn {
+  flex: 1 0 64px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 3px;
-  padding: 4px 16px;
-  font-size: 10px;
+  padding: 6px 4px;
+  border-radius: 12px;
+  font-size: 10.5px;
   font-weight: 600;
-  color: var(--muted);
+  color: var(--ink-soft);
+  white-space: nowrap;
+  scroll-snap-align: center;
 }
+.tabbar.is-scroll .tabbar-btn { flex: 0 0 68px; }
+.tabbar-icon { position: relative; display: grid; place-items: center; }
 .tabbar-btn svg { width: 20px; height: 20px; }
-.tabbar-btn.is-active { color: var(--violet); }
-.tabbar-btn[aria-current="page"] { color: var(--violet); }
+.tabbar-btn.is-active,
+.tabbar-btn[aria-current="page"] { color: var(--violet-deep); background: var(--violet-soft); font-weight: 700; }
+.tabbar-badge {
+  position: absolute;
+  top: -5px;
+  right: -10px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--violet);
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 800;
+  line-height: 16px;
+  text-align: center;
+}
 
 /* ========== MOBILE DAY STRIP ========== */
 .day-strip-wrap { display: block; flex-shrink: 0; }
@@ -1368,14 +1398,38 @@ tbody td:last-child { border-radius: 0 16px 16px 0; }
 }
 
 @media (max-width: 760px) {
-  .main { padding: 20px 18px 32px 16px; }
+  .main { padding: 16px 16px calc(96px + env(safe-area-inset-bottom)); }
   .rail { display: none; }
   .tabbar { display: flex; }
   .hero-row { grid-template-columns: 1fr; }
   .hello h1 { font-size: 27px; }
-  .search { width: 100%; max-width: none; }
-  .nav-right { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
   .instr-compare { grid-template-columns: 1fr; }
+
+  /* Top bar: search on its own row, then actions on the left and the user on the right. */
+  .topnav { gap: 10px; margin-bottom: 22px; }
+  .search { width: 100%; max-width: none; margin-left: 0; }
+  .search input { height: 42px; }
+  .nav-right { width: 100%; margin-left: 0; flex-wrap: wrap; gap: 8px; }
+  .nav-right > .btn-soft,
+  .nav-right > .btn-dark { height: 40px; padding: 0 14px; font-size: 12.5px; }
+  .nav-right > .btn-soft .chip { display: none; }
+  .nav-agency,
+  .nav-user { margin-left: auto; }
+  .nav-agency + .nav-user { margin-left: 0; }
+
+  /* Cards and rows: tighter gutters so content is not pushed to one side. */
+  .card-head { padding: 18px 18px 6px; flex-wrap: wrap; }
+  .card-tools { flex-wrap: wrap; }
+  .filters { padding: 14px 16px; }
+  .filters .btn-dark { margin-left: 0; }
+  .den-row { padding: 14px 16px; gap: 12px; flex-wrap: wrap; }
+  .den-deadline { width: auto; }
+  .settings-row { gap: 12px; align-items: flex-start; }
+  .settings-row > :first-child { min-width: 0; }
+  .table-scroll { padding: 6px 8px 8px; }
+  .drawer { width: 100vw; }
+  /* Several screens set desktop card padding inline; trim the sides on phones. */
+  .card[style*="padding"] { padding-left: 18px !important; padding-right: 18px !important; }
 }
 
 @media (min-width: 761px) {
